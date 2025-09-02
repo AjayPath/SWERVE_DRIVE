@@ -21,6 +21,7 @@ import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.units.measure.AngularVelocity;
 import frc.robot.Constants.DriveConstants;
+import frc.robot.utils.APOdometry;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class DriveSubsystem extends SubsystemBase {
@@ -47,6 +48,10 @@ public class DriveSubsystem extends SubsystemBase {
 
   // The gyro sensor
   private final Pigeon2 m_gyro = new Pigeon2(DriveConstants.kGryoID);
+
+  // APOdometry
+  private final APOdometry APOdom = 
+    APOdometry.getInstance(List.of(m_frontLeft, m_frontRight, m_rearLeft, m_rearRight), m_gyro);
 
   // Odometry class for tracking robot pose
   SwerveDriveOdometry m_odometry = new SwerveDriveOdometry(
@@ -76,7 +81,9 @@ public class DriveSubsystem extends SubsystemBase {
             m_rearLeft.getPosition(),
             m_rearRight.getPosition()
         });
-    
+  
+    APOdom.update();
+    APOdom.logCenterPose();
   }
 
   /**
