@@ -18,7 +18,9 @@ import edu.wpi.first.wpilibj.PS4Controller.Button;
 import frc.robot.Constants.AutoConstants;
 import frc.robot.Constants.DriveConstants;
 import frc.robot.Constants.OIConstants;
+import frc.robot.commands.DriveToPoint;
 import frc.robot.subsystems.DriveSubsystem;
+import frc.robot.utils.Pose;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.RunCommand;
@@ -38,6 +40,8 @@ public class RobotContainer {
 
   // The driver's controller
   XboxController m_driverController = new XboxController(OIConstants.kDriverControllerPort);
+
+  private final Pose targetPose = new Pose(1, 0, Rotation2d.fromDegrees(0));
 
   /**
    * The container for the robot. Contains subsystems, OI devices, and commands.
@@ -76,6 +80,9 @@ public class RobotContainer {
     // Command to reset the pose to zero when testing
     new JoystickButton(m_driverController, XboxController.Button.kB.value)
       .onTrue(new InstantCommand(() -> {m_robotDrive.setOdom(0, 0, 0);}));
+
+    new JoystickButton(m_driverController, XboxController.Button.kA.value)
+      .onTrue(new DriveToPoint(m_robotDrive, targetPose));
 
   }
 
