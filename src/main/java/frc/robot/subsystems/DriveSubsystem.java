@@ -22,6 +22,7 @@ import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.units.measure.AngularVelocity;
 import frc.robot.Constants.DriveConstants;
 import frc.robot.utils.APOdometry;
+import frc.robot.utils.Pose;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class DriveSubsystem extends SubsystemBase {
@@ -193,6 +194,23 @@ public class DriveSubsystem extends SubsystemBase {
    */
   public StatusSignal<AngularVelocity> getTurnRate() {
     return m_gyro.getAngularVelocityZWorld();
+  }
+
+  // Reset the robot gyro to zero
+  // Used to solve the gyro starting up at -90
+  public void resetGyroToZero() {
+    m_gyro.setYaw(0);
+  }
+
+  // Get the Robot Pose from APOdometry
+  public Pose getCustomPose() {
+    return APOdom.getPose();
+  }
+
+  // Set the Robot Pose using APOdometry
+  public void setOdom(double x, double y, double angleDeg) {
+    Pose newPose = new Pose(x, y, new Rotation2d(Math.toRadians(angleDeg)));
+    APOdom.setPose(newPose);
   }
 
 }
