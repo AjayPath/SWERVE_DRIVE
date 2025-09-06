@@ -187,6 +187,18 @@ public class DriveSubsystem extends SubsystemBase {
     return m_gyro.getRotation2d().getDegrees();
   }
 
+  public Rotation2d getGyro() {
+    return m_gyro.getRotation2d();
+  }
+
+  public void initializeOdometry() {
+    Rotation2d heading = m_gyro.getRotation2d();
+    if (!Double.isNaN(heading.getDegrees())) {
+        APOdom.setPose(new Pose(0, 0, heading));
+    }
+}
+
+
   /**
    * Returns the turn rate of the robot.
    *

@@ -50,7 +50,7 @@ public class APOdometry {
             modulePoses.add(new Pose(0, 0, initialAngle));
         }
 
-        lastCenter = calculateCenter();
+        lastCenter = new Pose(0, 0, gyro.getRotation2d());
         lastTime = edu.wpi.first.wpilibj.Timer.getFPGATimestamp();
 
     }
@@ -122,6 +122,7 @@ public class APOdometry {
     public Pose getCenterFromWheel (Pose wheelPose, Vector wheelOffset) {
 
         Rotation2d yaw = gyro.getRotation2d();
+        //Rotation2d yaw = Rotation2d.fromDegrees(lastCenter.GetAngleValue());
         Rotation2d offsetAngle = yaw.plus(wheelOffset.GetAngle());
         double offsetX = wheelOffset.GetMag() * Math.cos(offsetAngle.getRadians());
         double offsetY = wheelOffset.GetMag() * Math.sin(offsetAngle.getRadians());
@@ -154,6 +155,7 @@ public class APOdometry {
         double avgX = sumX / modulePoses.size();
         double avgY = sumY / modulePoses.size();
         Rotation2d avgAngle = gyro.getRotation2d();
+        
 
         return new Pose(avgX, avgY, avgAngle);
 
@@ -169,8 +171,11 @@ public class APOdometry {
             modulePoses.get(i).SetPose(
                 offset.GetXValue() + newPose.GetXValue(),
                 offset.GetYValue() + newPose.GetYValue(),
-                new Rotation2d(Math.toRadians(steerAngle))
+                //new Rotation2d(Math.toRadians(steerAngle))
+                Rotation2d.fromDegrees(newPose.GetAngleValue())
             );
+
+            lastCenter = newPose;
 
             lastWheelDistances[i] = swerveMods.get(i).getPosition().distanceMeters;
 
@@ -193,10 +198,12 @@ public class APOdometry {
 
             lastWheelDistances[i] = swerveMods.get(i).getPosition().distanceMeters;
         }
+        lastCenter = new Pose(0, 0, gyro.getRotation2d());
     }
 
     public Pose getPose() {
-        return calculateCenter();
+        //return calculateCenter();
+        return lastCenter;
     }
 
     public Vector getVelocity() {

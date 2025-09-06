@@ -13,12 +13,15 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.trajectory.Trajectory;
 import edu.wpi.first.math.trajectory.TrajectoryConfig;
 import edu.wpi.first.math.trajectory.TrajectoryGenerator;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.PS4Controller.Button;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.Constants.AutoConstants;
 import frc.robot.Constants.DriveConstants;
 import frc.robot.Constants.OIConstants;
 import frc.robot.commands.DriveToPoint;
+import frc.robot.commands.DriveToPointPID;
 import frc.robot.subsystems.DriveSubsystem;
 import frc.robot.utils.Pose;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -41,14 +44,17 @@ public class RobotContainer {
   // The driver's controller
   XboxController m_driverController = new XboxController(OIConstants.kDriverControllerPort);
 
-  private final Pose targetPose = new Pose(1, 0, Rotation2d.fromDegrees(0));
+  private final Pose targetPose = new Pose(10, 0, Rotation2d.fromDegrees(0));
 
   /**
    * The container for the robot. Contains subsystems, OI devices, and commands.
    */
   public RobotContainer() {
     // Reset Gyro To Zero upon robot startup
+    Timer.delay(0.5);
     m_robotDrive.resetGyroToZero();
+    m_robotDrive.setOdom(0, 0, 0);
+    SmartDashboard.putNumber("STARTUP HEADING", m_robotDrive.getHeading());
 
     // Configure the button bindings
     configureButtonBindings();
@@ -82,7 +88,7 @@ public class RobotContainer {
       .onTrue(new InstantCommand(() -> {m_robotDrive.setOdom(0, 0, 0);}));
 
     new JoystickButton(m_driverController, XboxController.Button.kA.value)
-      .onTrue(new DriveToPoint(m_robotDrive, targetPose));
+      .whileTrue(new DriveToPointPID(m_robotDrive, targetPose));
 
   }
 
