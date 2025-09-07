@@ -20,6 +20,8 @@ import edu.wpi.first.math.kinematics.SwerveDriveOdometry;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.units.measure.AngularVelocity;
+import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.Constants.DriveConstants;
 import frc.robot.utils.APOdometry;
 import frc.robot.utils.Pose;
@@ -69,6 +71,11 @@ public class DriveSubsystem extends SubsystemBase {
   public DriveSubsystem() {
     // Usage reporting for MAXSwerve template
     HAL.report(tResourceType.kResourceType_RobotDrive, tInstances.kRobotDriveSwerve_MaxSwerve);
+
+    SmartDashboard.putNumber("Gyro deg", m_gyro.getRotation2d().getDegrees());
+    SmartDashboard.putNumber("WPILib odom angle", m_odometry.getPoseMeters().getRotation().getDegrees());
+    SmartDashboard.putNumber("APOdometry angle", APOdom.getPose().GetAngleValue()); // your custom API
+    SmartDashboard.putNumber("FrontLeft module angle", m_frontLeft.getPosition().angle.getDegrees());
   }
 
   @Override
@@ -224,5 +231,39 @@ public class DriveSubsystem extends SubsystemBase {
     Pose newPose = new Pose(x, y, new Rotation2d(Math.toRadians(angleDeg)));
     APOdom.setPose(newPose);
   }
+
+  public void resetAllOdometryToZero() {
+    // Wait a short moment for Pigeon to boot & provide valid readings
+    // (poll until heading not NaN). This avoids zeroing before gyro is valid.
+    Timer t = new Timer();
+    t.reset();
+    while (Double.isNaN(m_gyro.getRotation2d().getDegrees()) && t.get() < 2.0) {
+        Timer.delay(0.01); // tiny delay
+    }
+
+    // Zero the pigeon
+    m_gyro.reset();; // set yaw to zero
+
+    // Build array of current module positions
+    SwerveModulePosition[] modulePositions = new SwerveModulePosition[] {
+        m_frontLeft.getPosition(),
+        m_frontRight.getPosition(),
+        m_rearLeft.getPosition(),
+        m_rearRight.getPosition()
+    };
+
+    // Reset the WPILib odometry to pose (0,0,0)
+    Pose2d zeroPose = new Pose2d(0.0, 0.0, new Rotation2d(0.0));
+    // Note: signature: resetPosition(Rotation2d gyroAngle, SwerveModulePosition[] modulePositions, Pose2d pose)
+    m_odometry.resetPosition(m_gyro.getRotation2d(), modulePositions, zeroPose);
+
+    // Reset your custom odometry to exactly the same pose
+    setOdom(0.0, 0.0, 0.0);
+}
+
+public void resetGyro() {
+  // Pigeon2 method to set yaw to 0
+  m_gyro.setYaw(0, 100); // second parameter is timeout ms
+}
 
 }

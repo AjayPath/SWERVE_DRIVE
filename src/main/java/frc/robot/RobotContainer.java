@@ -44,18 +44,18 @@ public class RobotContainer {
   // The driver's controller
   XboxController m_driverController = new XboxController(OIConstants.kDriverControllerPort);
 
-  private final Pose targetPose = new Pose(10, 0, Rotation2d.fromDegrees(0));
+  private final Pose targetPose = new Pose(0, 0, Rotation2d.fromDegrees(20));
 
   /**
    * The container for the robot. Contains subsystems, OI devices, and commands.
    */
   public RobotContainer() {
     // Reset Gyro To Zero upon robot startup
-    Timer.delay(0.5);
-    m_robotDrive.resetGyroToZero();
-    m_robotDrive.setOdom(0, 0, 0);
-    SmartDashboard.putNumber("STARTUP HEADING", m_robotDrive.getHeading());
-
+    // Timer.delay(5);
+    // m_robotDrive.resetGyroToZero();
+    // m_robotDrive.setOdom(0, 0, 0);
+    // SmartDashboard.putNumber("STARTUP HEADING", m_robotDrive.getHeading());
+    m_robotDrive.resetAllOdometryToZero();
     // Configure the button bindings
     configureButtonBindings();
 
@@ -85,10 +85,11 @@ public class RobotContainer {
 
     // Command to reset the pose to zero when testing
     new JoystickButton(m_driverController, XboxController.Button.kB.value)
-      .onTrue(new InstantCommand(() -> {m_robotDrive.setOdom(0, 0, 0);}));
+      .onTrue(new InstantCommand(() -> m_robotDrive.zeroHeading()));
 
     new JoystickButton(m_driverController, XboxController.Button.kA.value)
       .whileTrue(new DriveToPointPID(m_robotDrive, targetPose));
+
 
   }
 
@@ -100,4 +101,30 @@ public class RobotContainer {
   public Command getAutonomousCommand() {
     return null;
   }
+
+  public DriveSubsystem getDriveSubsystem() {
+    return m_robotDrive;
+  }
+
+  public void logDriveStatus() {
+    DriveSubsystem drive = getDriveSubsystem();
+
+    // Get gyro
+    double heading = drive.getHeading();
+    Rotation2d rotation = drive.getGyro();
+
+    // Get odometry
+    Pose2d wpilibPose = drive.getPose();
+    frc.robot.utils.Pose customPose = drive.getCustomPose();
+
+    // Log to SmartDashboard
+    SmartDashboard.putNumber("RC Gyro deg", heading);
+    SmartDashboard.putNumber("RC WPILib X", wpilibPose.getX());
+    SmartDashboard.putNumber("RC WPILib Y", wpilibPose.getY());
+    SmartDashboard.putNumber("RC WPILib Angle", wpilibPose.getRotation().getDegrees());
+
+    SmartDashboard.putNumber("RC APOdometry X", customPose.GetXValue());
+    SmartDashboard.putNumber("RC APOdometry Y", customPose.GetYValue());
+    SmartDashboard.putNumber("RC APOdometry Angle", customPose.GetAngleValue());
+}
 }

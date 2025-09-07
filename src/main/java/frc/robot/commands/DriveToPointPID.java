@@ -24,15 +24,16 @@ public class DriveToPointPID extends Command {
   private double rVel;
 
   private final double maxVel = 1.5;
-  private final double maxRVel = 1.0;
-  private final double MAX_SPEED = 3.0;
-  private final double MAX_ROT_SPEED = 1.0;
+  private final double maxRVel = 0.2;
+  private final double MAX_SPEED = 1.0;
+  private final double MAX_ROT_SPEED = 0.5;
 
   private Pose currentPose;
   private double distance;
   private double driveSpeed;
   private double turnSpeed;
   private double angleDiff;
+  private double angleError;
 
   private final APPID drivePID;
   private final APPID turnPID;
@@ -48,7 +49,7 @@ public class DriveToPointPID extends Command {
     drivePID.setDesiredValue(0);
 
     turnPID = new APPID(0.015, 0, 0, 0.05);
-    //turnPID.setMaxOutput(1);
+    turnPID.setMaxOutput(1);
     turnPID.setDesiredValue(0);
     //turnPID.setDesiredValue(targetPose.GetAngleValue());
 
@@ -59,37 +60,12 @@ public class DriveToPointPID extends Command {
   public void initialize() {
     drivePID.resetErrorSum();
     turnPID.resetErrorSum();
+    turnPID.reset();
   }
 
   // Called every time the scheduler runs while the command is scheduled.
   @Override
   public void execute() {
-
-    // currentPose = m_drive.getCustomPose();
-
-    // Vector delta = targetPose.Subtract(currentPose);
-
-    // distance = Math.sqrt(delta.GetXValue() * delta.GetXValue() + delta.GetYValue() * delta.GetYValue());
-
-    // angleDiff = Calculations.signedAngleDifference(targetPose.GetAngleValue(), currentPose.GetAngleValue());
-
-    // driveSpeed = -drivePID.calcPID(distance);
-    // turnSpeed = -turnPID.calcPID(angleDiff);
-
-    // // Compute and set speeds
-    // if (distance > 1e-6) {
-
-    //   double unitX = delta.GetXValue() / distance;
-    //   double unitY = delta.GetYValue() / distance;
-
-    //   double xSpeed = unitX * driveSpeed;
-    //   double ySpeed = unitY * driveSpeed;
-
-    //   m_drive.drive(xSpeed, ySpeed, turnSpeed, true);
-
-    // } else {
-    //   m_drive.drive(0, 0, 0, true);
-    // }
 
     currentPose = m_drive.getCustomPose();
 
@@ -98,11 +74,7 @@ public class DriveToPointPID extends Command {
 
     translationMag = -drivePID.calcPID(distance);
     translationMag = Math.min(translationMag, maxVel);
-    //translationMag *= 0.15;
-
-    if (distance < 0) {
-      translationMag = -translationMag;
-    }
+    translationMag *= 0.5;
 
     double xVel = translationMag * Math.cos(difference.GetAngle().getRadians());
     double yVel = translationMag * Math.sin(difference.GetAngle().getRadians());
@@ -110,20 +82,36 @@ public class DriveToPointPID extends Command {
     xVel = Math.max(-MAX_SPEED, Math.min(xVel, MAX_SPEED));
     yVel = Math.max(-MAX_SPEED, Math.min(yVel, MAX_SPEED));
 
-    Rotation2d currentAngle = Rotation2d.fromDegrees(currentPose.GetAngleValue());
-    Rotation2d targetAngle = Rotation2d.fromDegrees(targetPose.GetAngleValue());
+  // // Compute current and target headings
+  //Rotation2d currentAngle = Rotation2d.fromDegrees(currentPose.GetAngleValue());
+  //Rotation2d targetAngle = Rotation2d.fromDegrees(targetPose.GetAngleValue());
 
-    Rotation2d angleDifference = targetAngle.minus(currentAngle);
+  // // Signed angle difference (-180 to +180)
+  //Rotation2d angleDifference = targetAngle.minus(currentAngle);
+  // Rotation2d normalizedDiff = Calculations.NormalizeAngle(angleDifference);
 
-    Rotation2d normalizedDiff = Calculations.NormalizeAngle(angleDifference);
+  // // Use PID on angle error (in degrees)
+  // angleError = normalizedDiff.getDegrees();
+  // rVel = -turnPID.calcPID(angleError);
 
-    //double currentAngle = currentPose.GetAngleValue();
-    rVel = -turnPID.calcPID(normalizedDiff.getDegrees());
-    rVel = Math.max(-maxRVel, Math.min(rVel, maxRVel));
+  // // Clamp raw PID output
+  // rVel = Math.max(-maxRVel, Math.min(rVel, maxRVel));
 
-    m_drive.drive(xVel, yVel, rVel, true);
+  // m_drive.drive(xVel, yVel, 0, true);
 
-    //updateDashboard(driveSpeed);
+  // convert gyro angle to 0-360 or -180 to 180 once
+
+  double currentAngle = currentPose.GetAngleValue();
+
+  double angleDiff = Calculations.signedAngleDifference(targetPose.GetAngleValue(), currentAngle);
+
+  double turnOuput = -turnPID.calcPID(angleDiff);
+
+  turnOuput = Math.max(-maxRVel, Math.min(turnOuput, maxRVel));
+
+  m_drive.drive(0, 0, turnOuput, true);
+
+  //updateDashboard(driveSpeed);
 
   }
 
@@ -136,8 +124,12 @@ public class DriveToPointPID extends Command {
   // Returns true when the command should end.
   @Override
   public boolean isFinished() {
-    //return drivePID.isDone() || distance <= tolerance;
-    return distance < tolerance;
+    Pose current = m_drive.getCustomPose();  // fetch fresh pose
+    double angleError = targetPose.GetAngleValue() - current.GetAngleValue();
+    // Normalize to [-180, 180]
+    angleError = ((angleError + 180) % 360 + 360) % 360 - 180;
+
+    return Math.abs(angleError) < tolerance;
   }
 
   // private void updateDashboard(double speedOutput) {

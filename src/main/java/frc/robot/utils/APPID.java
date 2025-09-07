@@ -259,5 +259,12 @@ public class APPID {
             }
         return false;
     }
+
+    public void reset() {
+        m_errorSum = 0;
+        m_previousValue = 0;
+        m_firstCycle = true;
+        pidTimer.reset();
+    }
     
 }
