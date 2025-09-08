@@ -130,5 +130,20 @@ public class Calculations {
         return diff;
     }
 
+        /**
+     * Normalize an angle in degrees to the range (-180, 180].
+     * @param angleDeg The angle in degrees
+     * @return normalized angle in degrees
+     */
+    public static double NormalizeAngle(double angleDeg) {
+        double result = angleDeg % 360.0;
+        if (result <= -180.0) {
+            result += 360.0;
+        } else if (result > 180.0) {
+            result -= 360.0;
+        }
+        return result;
+    }
+
 
 }

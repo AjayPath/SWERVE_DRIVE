@@ -121,7 +121,9 @@ public class APPID {
     // }
 
     public void setMaxOutput (double max) {
-        m_maxOutput = max;
+        if (max >= 0.0 && max <= 1.0) {
+            m_maxOutput = max;
+        }
     }
 
     /**
@@ -174,7 +176,7 @@ public class APPID {
             }
             else {
                 // otherwise, subtract the max increment per cycle
-                m_errorSum -= m_errorIncrement;
+                m_errorSum += m_errorIncrement;
             }
         }
 
@@ -182,7 +184,7 @@ public class APPID {
         else if (error <= -m_errorEpsilon) {
             if (m_errorSum > 0) {
                 // If we are fighting away from the point, reset the error
-                m_errorSum = 0;
+                // m_errorSum = 0;
             }
             else if (error > -m_errorIncrement) {
                 // If the error is smaller than the max increment add it
@@ -206,7 +208,7 @@ public class APPID {
         iVal = m_i * (double)m_errorSum;
 
         // Calculate the D component
-        double velocity = (currentValue - m_previousValue) / ((double)pidTimer.get());
+        double velocity = (currentValue - m_previousValue) / (((double)pidTimer.get()) * 0.02);
         // If not the first cycle
         if (!m_firstCycle) {
             dVal = m_d * (double)velocity;
@@ -217,7 +219,7 @@ public class APPID {
 
         // Calculate and Limit the Output
         // Output = P + I - D
-        double output = pVal + iVal + dVal;
+        double output = pVal + iVal - dVal;
 
         if (output > m_maxOutput) {
             output = m_maxOutput;

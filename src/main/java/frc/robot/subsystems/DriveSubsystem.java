@@ -188,8 +188,8 @@ public class DriveSubsystem extends SubsystemBase {
   }
 
   public void initializeOdometry() {
-    Rotation2d heading = m_gyro.getRotation2d();
-    if (!Double.isNaN(heading.getDegrees())) {
+    double heading = m_gyro.getRotation2d().getDegrees();
+    if (!Double.isNaN(heading)) {
         APOdom.setPose(new Pose(0, 0, heading));
     }
 }
@@ -210,7 +210,7 @@ public class DriveSubsystem extends SubsystemBase {
 
   // Set the Robot Pose using APOdometry
   public void setOdom(double x, double y, double angleDeg) {
-    Pose newPose = new Pose(x, y, new Rotation2d(Math.toRadians(angleDeg)));
+    Pose newPose = new Pose(x, y, angleDeg);
     APOdom.setPose(newPose);
   }
 

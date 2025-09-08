@@ -5,10 +5,10 @@ import edu.wpi.first.math.geometry.Rotation2d;
 
 public class Pose {
     
-    // Private variables
-    double x; // X value in inches
-    double y; // Y value in inches
-    Rotation2d angle; // angle in radians
+   // Private variables
+   private double x; 
+   private double y; 
+   private double angle; 
 
     /**
      * Create a new pose
@@ -17,7 +17,7 @@ public class Pose {
      * @param _angle angle of the pose
      */
 
-     public Pose(double _x, double _y, Rotation2d _angle) {
+     public Pose(double _x, double _y, double _angle) {
         x = _x;
         y = _y;
         angle = _angle;
@@ -30,7 +30,13 @@ public class Pose {
      public Pose() {
         x = 0;
         y = 0;
-        angle = Rotation2d.fromDegrees(90);
+        angle = 0;
+     }
+
+     public Pose (Pose other) {
+      this.x = other.x;
+      this.y = other.y;
+      this.angle = other.angle;
      }
 
     /**
@@ -57,7 +63,7 @@ public class Pose {
      */
 
      public double GetAngleValue() {
-        return angle.getDegrees();
+        return angle;
      }
 
     /**
@@ -83,7 +89,7 @@ public class Pose {
      * @param _angle new angle
      */
 
-     public void SetAngle(Rotation2d _angle) {
+     public void SetAngle(double _angle) {
         //angle = new Rotation2d(_angle.getDegrees());
         angle = _angle;
      }
@@ -92,9 +98,10 @@ public class Pose {
      * Reflect the pose along the y axis
      */
 
-     public void ReflectY() {
-        x = -x;
-        angle = new Rotation2d(Math.atan2(Math.sin(angle.getDegrees()), -Math.cos(angle.getDegrees())));
+     public void reflectY() {
+      this.x = -this.x;
+      this.angle = 180 - this.angle;
+      this.angle = Calculations.NormalizeAngle(this.angle);
      }
 
     /**
@@ -134,7 +141,7 @@ public class Pose {
      * @param _angle new angle comp
      */
 
-     public void SetPose(double _x, double _y, Rotation2d _angle) {
+     public void SetPose(double _x, double _y, double _angle) {
         x = _x;
         y = _y;
         angle = _angle;
@@ -145,10 +152,10 @@ public class Pose {
      * @param _pose new pose
      */
 
-     public void SetPose(Pose _pose) {
-        x = _pose.GetXValue();
-        y = _pose.GetYValue();
-        angle = new Rotation2d( _pose.GetAngleValue());
+     public void SetPose(Pose other) {
+        x = other.GetXValue();
+        y = other.GetYValue();
+        angle = other.angle;
      }
 
     /**
@@ -157,7 +164,7 @@ public class Pose {
      */
 
      public void Transform(double GyroAngle) {
-        angle = angle.plus(Rotation2d.fromDegrees(GyroAngle));
+        angle = angle + GyroAngle;
         angle = Calculations.NormalizeAngle(angle);
      }
 
@@ -166,7 +173,7 @@ public class Pose {
      * @param pre String to print before the pose
      */
     public void Print(String pre) {
-        System.out.printf("%s: x:%.2f y:%.2f a:%.2f\n", pre, x, y, angle.getDegrees());
+        System.out.printf("%s: x:%.2f y:%.2f a:%.2f\n", pre, x, y, angle);
     }
 
     /**
@@ -175,7 +182,7 @@ public class Pose {
      * @param i   Number to print before the pose
      */
     public void Print(String pre, int i) {
-        System.out.printf("%s %d: x:%.2f y:%.2f a:%.2f\n", pre, i, x, y, angle.getDegrees());
+        System.out.printf("%s %d: x:%.2f y:%.2f a:%.2f\n", pre, i, x, y, angle);
     }
 
     /**
@@ -183,14 +190,14 @@ public class Pose {
      * @param i Number to print before the pose
      */
     public void Print(int i) {
-        System.out.printf("%d: x:%.2f y:%.2f a:%.2f\n", i, x, y, angle.getDegrees());
+        System.out.printf("%d: x:%.2f y:%.2f a:%.2f\n", i, x, y, angle);
     }
 
     /**
      * Print the pose without any prefix
      */
     public void Print() {
-        System.out.printf("x:%.2f y:%.2f a:%.2f\n", x, y, angle.getDegrees());
+        System.out.printf("x:%.2f y:%.2f a:%.2f\n", x, y, angle);
     }
      
 }
