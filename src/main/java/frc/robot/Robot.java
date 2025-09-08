@@ -31,15 +31,17 @@ public class Robot extends TimedRobot {
     m_robotContainer = new RobotContainer();
     //m_drive.resetAllOdometryToZero();
     DriveSubsystem drive = m_robotContainer.getDriveSubsystem();
-        // Start a thread to wait for gyro boot
-        new Thread(() -> {
-          try {
-              Thread.sleep(1000); // wait 1 second for gyro to stabilize
-          } catch (InterruptedException e) {
-              e.printStackTrace();
-          }
-          drive.resetGyro();               // actually set gyro yaw to 0
-          drive.resetAllOdometryToZero(); // then reset odometry using gyro=0
+    
+    // Start a thread to wait for gyro boot
+    new Thread(() -> {
+      try {
+        Thread.sleep(1000); // wait 1 second for gyro to stabilize
+      }
+      catch (InterruptedException e) {
+        e.printStackTrace();
+      }
+        drive.resetGyro();               // actually set gyro yaw to 0
+        drive.resetAllOdometryToZero(); // then reset odometry using gyro=0
       }).start();
     
   }

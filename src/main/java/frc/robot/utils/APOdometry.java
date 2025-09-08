@@ -219,9 +219,6 @@ public class APOdometry {
 
         SmartDashboard.putNumber("Speed", robotVel.GetMag());
         SmartDashboard.putNumber("Direction", robotVel.GetAngle().getDegrees());
-
     }
-
-    
 
 }

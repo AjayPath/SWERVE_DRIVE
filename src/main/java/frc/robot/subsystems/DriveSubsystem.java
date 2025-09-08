@@ -21,7 +21,6 @@ import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.wpilibj.Timer;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.Constants.DriveConstants;
 import frc.robot.utils.APOdometry;
 import frc.robot.utils.Pose;
@@ -71,11 +70,6 @@ public class DriveSubsystem extends SubsystemBase {
   public DriveSubsystem() {
     // Usage reporting for MAXSwerve template
     HAL.report(tResourceType.kResourceType_RobotDrive, tInstances.kRobotDriveSwerve_MaxSwerve);
-
-    SmartDashboard.putNumber("Gyro deg", m_gyro.getRotation2d().getDegrees());
-    SmartDashboard.putNumber("WPILib odom angle", m_odometry.getPoseMeters().getRotation().getDegrees());
-    SmartDashboard.putNumber("APOdometry angle", APOdom.getPose().GetAngleValue()); // your custom API
-    SmartDashboard.putNumber("FrontLeft module angle", m_frontLeft.getPosition().angle.getDegrees());
   }
 
   @Override
@@ -180,11 +174,6 @@ public class DriveSubsystem extends SubsystemBase {
     m_rearRight.resetEncoders();
   }
 
-  /** Zeroes the heading of the robot. */
-  public void zeroHeading() {
-    m_gyro.reset();
-  }
-
   /**
    * Returns the heading of the robot.
    *
@@ -205,7 +194,6 @@ public class DriveSubsystem extends SubsystemBase {
     }
 }
 
-
   /**
    * Returns the turn rate of the robot.
    *
@@ -213,12 +201,6 @@ public class DriveSubsystem extends SubsystemBase {
    */
   public StatusSignal<AngularVelocity> getTurnRate() {
     return m_gyro.getAngularVelocityZWorld();
-  }
-
-  // Reset the robot gyro to zero
-  // Used to solve the gyro starting up at -90
-  public void resetGyroToZero() {
-    m_gyro.setYaw(0);
   }
 
   // Get the Robot Pose from APOdometry
@@ -259,11 +241,11 @@ public class DriveSubsystem extends SubsystemBase {
 
     // Reset your custom odometry to exactly the same pose
     setOdom(0.0, 0.0, 0.0);
-}
+  }
 
-public void resetGyro() {
-  // Pigeon2 method to set yaw to 0
-  m_gyro.setYaw(0, 100); // second parameter is timeout ms
-}
+  public void resetGyro() {
+    // Pigeon2 method to set yaw to 0
+    m_gyro.setYaw(0, 100); // second parameter is timeout ms
+  }
 
 }

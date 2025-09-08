@@ -44,18 +44,13 @@ public class RobotContainer {
   // The driver's controller
   XboxController m_driverController = new XboxController(OIConstants.kDriverControllerPort);
 
-  private final Pose targetPose = new Pose(0, 0, Rotation2d.fromDegrees(20));
+  private final Pose targetPose = new Pose(5, 0, Rotation2d.fromDegrees(0));
 
   /**
    * The container for the robot. Contains subsystems, OI devices, and commands.
    */
   public RobotContainer() {
-    // Reset Gyro To Zero upon robot startup
-    // Timer.delay(5);
-    // m_robotDrive.resetGyroToZero();
-    // m_robotDrive.setOdom(0, 0, 0);
-    // SmartDashboard.putNumber("STARTUP HEADING", m_robotDrive.getHeading());
-    m_robotDrive.resetAllOdometryToZero();
+
     // Configure the button bindings
     configureButtonBindings();
 
@@ -83,13 +78,8 @@ public class RobotContainer {
    */
   private void configureButtonBindings() {
 
-    // Command to reset the pose to zero when testing
-    new JoystickButton(m_driverController, XboxController.Button.kB.value)
-      .onTrue(new InstantCommand(() -> m_robotDrive.zeroHeading()));
-
     new JoystickButton(m_driverController, XboxController.Button.kA.value)
       .whileTrue(new DriveToPointPID(m_robotDrive, targetPose));
-
 
   }
 
@@ -126,5 +116,6 @@ public class RobotContainer {
     SmartDashboard.putNumber("RC APOdometry X", customPose.GetXValue());
     SmartDashboard.putNumber("RC APOdometry Y", customPose.GetYValue());
     SmartDashboard.putNumber("RC APOdometry Angle", customPose.GetAngleValue());
-}
+  }
+  
 }
