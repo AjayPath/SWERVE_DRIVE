@@ -130,7 +130,7 @@ public class Calculations {
         return diff;
     }
 
-        /**
+    /**
      * Normalize an angle in degrees to the range (-180, 180].
      * @param angleDeg The angle in degrees
      * @return normalized angle in degrees
@@ -145,5 +145,39 @@ public class Calculations {
         return result;
     }
 
+    /**
+     * Normalize an angle in degrees to the range [0, 360).
+     * @param angleDeg The angle in degrees
+     * @return normalized angle in degrees between 0 and 360
+     */
+    public static double NormalizeAngle360(double angleDeg) {
+        double result = angleDeg % 360.0;
+        if (result < 0.0) {
+            result += 360.0;
+        }
+        return result;
+    }
 
+    /**
+     * Calculate the shortest angular distance between two angles in 0-360 range
+     * @param targetDegrees Target angle (0-360)
+     * @param currentDegrees Current angle (0-360) 
+     * @return Shortest angular distance (-180 to 180), positive = CCW, negative = CW
+     */
+    public static double shortestAngularDistance(double targetDegrees, double currentDegrees) {
+        // Ensure both angles are in 0-360 range
+        double target = NormalizeAngle360(targetDegrees);
+        double current = NormalizeAngle360(currentDegrees);
+        
+        double diff = target - current;
+        
+        // Convert to shortest path
+        if (diff > 180.0) {
+            diff -= 360.0;
+        } else if (diff < -180.0) {
+            diff += 360.0;
+        }
+        
+        return diff;
+    }
 }

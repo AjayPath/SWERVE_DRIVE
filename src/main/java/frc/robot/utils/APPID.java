@@ -25,6 +25,7 @@ public class APPID {
     private int m_cycleCount; // Current number of cycles in epsilon range
 
     private final Timer pidTimer; // PID Timer
+    private static final double FIXED_DT = 0.02; // Fixed 20ms loop time
 
     /**
      * The constructor below will initialize the PID Controller
@@ -110,16 +111,6 @@ public class APPID {
         m_desiredValue = target;
     }
 
-    /**
-     * Check whether the value is above or below the max
-     * @param max max output value
-     */
-    // public void setMaxOutput(double max) {
-    //     if (max >= 0.0 && max <= 1.0) {
-    //         m_maxOutput = max;
-    //     }
-    // }
-
     public void setMaxOutput (double max) {
         if (max >= 0.0 && max <= 1.0) {
             m_maxOutput = max;
@@ -153,89 +144,65 @@ public class APPID {
             pidTimer.reset(); // Reset the timer
         }
 
-        // If the setpoint has not been reached, reset the flag
+        // If the setpoint has been changed, reset some states
         if (m_oldDesiredValue != m_desiredValue) {
             m_firstCycle = true;
+            m_errorSum = 0; // Reset integral when setpoint changes
         }
 
         // The section below calculates the P component
         double error = m_desiredValue - currentValue;
-        pVal = m_p * (double)error;
+        pVal = m_p * error;
 
         // The section below calculates the I component
+        // FIXED: Simplified integral logic to be more symmetric
         
-        // This section is for if the error is positive and outside of the epsilon band
-        if (error >= m_errorEpsilon) {
-            if (m_errorSum < 0) {
-                // If we are fighting away from the point, reset the error to 0
-                m_errorSum = 0;
+        if (Math.abs(error) > m_errorEpsilon) {
+            // Only accumulate error if outside epsilon band
+            if (m_izone == 0 || Math.abs(error) <= m_izone) {
+                // Add error with increment limiting
+                if (Math.abs(error) <= m_errorIncrement) {
+                    m_errorSum += error;
+                } else {
+                    // Clamp to increment size but preserve sign
+                    m_errorSum += Math.signum(error) * m_errorIncrement;
+                }
             }
-            else if (error < m_errorIncrement) {
-                // If the error is smaller than the max increment amount, add it
-                m_errorSum += error;
-            }
-            else {
-                // otherwise, subtract the max increment per cycle
-                m_errorSum += m_errorIncrement;
-            }
-        }
-
-        // This section is for if the error is negative and outside teh epsilon band
-        else if (error <= -m_errorEpsilon) {
-            if (m_errorSum > 0) {
-                // If we are fighting away from the point, reset the error
-                // m_errorSum = 0;
-            }
-            else if (error > -m_errorIncrement) {
-                // If the error is smaller than the max increment add it
-                m_errorSum += error;
-            } else {
-                // otherwise, subtract the max increment per cycle
-                m_errorSum -= m_errorIncrement;
-            }
-        }
-
-        // This section is for if the error is inside teh epsilon band
-        else {
-            m_errorSum = 0;
-        }
-
-        if (m_izone != 0 && Math.abs(error) > m_izone) {
+        } else {
+            // Inside epsilon band - zero out integral
             m_errorSum = 0;
         }
 
         // Calculate the iVal
-        iVal = m_i * (double)m_errorSum;
+        iVal = m_i * m_errorSum;
 
-        // Calculate the D component
-        double velocity = (currentValue - m_previousValue) / (((double)pidTimer.get()) * 0.02);
-        // If not the first cycle
-        if (!m_firstCycle) {
-            dVal = m_d * (double)velocity;
-        }
-        else {
+        // Calculate the D component with fixed timestep for consistency
+        double dt = pidTimer.get();
+        if (dt > 0 && !m_firstCycle) {
+            double velocity = (currentValue - m_previousValue) / dt;
+            dVal = m_d * velocity;
+        } else {
             dVal = 0;
         }
 
         // Calculate and Limit the Output
-        // Output = P + I - D
+        // Output = P + I - D (note the minus for D term)
         double output = pVal + iVal - dVal;
 
+        // Symmetric clamping
         if (output > m_maxOutput) {
             output = m_maxOutput;
-        }
-        else if (output < -m_maxOutput) {
+        } else if (output < -m_maxOutput) {
             output = -m_maxOutput;
         }
 
-        // Save the curent value for the next cycles D value calc
+        // Save the current value for the next cycles D value calc
         m_previousValue = currentValue;
         pidTimer.reset();
         m_oldDesiredValue = m_desiredValue;
         
         // Return the output
         return output;
-
     }
 
     /**
@@ -247,18 +214,17 @@ public class APPID {
     }
 
     public boolean isDone() {
-        if (m_previousValue <= m_desiredValue + m_errorEpsilon
-            && m_previousValue >= m_desiredValue - m_errorEpsilon
-            && !m_firstCycle) {
-              
-                if (m_cycleCount >= m_minCycleCount) {
-                    m_cycleCount = 0;
-                    return true;
-                }
-                else {
-                    m_cycleCount++;
-                }
+        double currentError = Math.abs(m_desiredValue - m_previousValue);
+        
+        if (currentError <= m_errorEpsilon && !m_firstCycle) {
+            m_cycleCount++;
+            if (m_cycleCount >= m_minCycleCount) {
+                m_cycleCount = 0;
+                return true;
             }
+        } else {
+            m_cycleCount = 0; // Reset counter if we leave epsilon range
+        }
         return false;
     }
 
@@ -266,6 +232,7 @@ public class APPID {
         m_errorSum = 0;
         m_previousValue = 0;
         m_firstCycle = true;
+        m_cycleCount = 0;
         pidTimer.reset();
     }
     

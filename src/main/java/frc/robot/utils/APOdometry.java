@@ -50,9 +50,9 @@ public class APOdometry {
             modulePoses.add(new Pose(0, 0, initialAngle));
         }
 
+        // Store continuous angle internally
         lastCenter = new Pose(0, 0, gyro.getRotation2d().getDegrees());
         lastTime = edu.wpi.first.wpilibj.Timer.getFPGATimestamp();
-
     }
 
     public static APOdometry getInstance(List<MAXSwerveModule> swerveMods, Pigeon2 gyro) {
@@ -80,8 +80,6 @@ public class APOdometry {
             modulePoses.get(i).SetX(modulePoses.get(i).GetXValue() + dx);
             modulePoses.get(i).SetY(modulePoses.get(i).GetYValue() + dy);
             modulePoses.get(i).SetAngle(wheelAngle);
-            
-
         }
 
         Pose currentCenter = calculateCenter();
@@ -133,7 +131,6 @@ public class APOdometry {
         );
 
         return centerPose;
-
     }
 
     public Pose calculateCenter() {
@@ -149,11 +146,10 @@ public class APOdometry {
 
         double avgX = sumX / modulePoses.size();
         double avgY = sumY / modulePoses.size();
+        // Store continuous angle from gyro
         double avgAngle = gyro.getRotation2d().getDegrees();
         
-
         return new Pose(avgX, avgY, avgAngle);
-
     }
 
     public void setPose(Pose newPose) {
@@ -172,11 +168,9 @@ public class APOdometry {
             lastCenter = newPose;
 
             lastWheelDistances[i] = swerveMods.get(i).getPosition().distanceMeters;
-
         }
 
         calculateCenter();
-
     }
 
     public void reset() {
@@ -195,9 +189,22 @@ public class APOdometry {
         lastCenter = new Pose(0, 0, gyro.getRotation2d().getDegrees());
     }
 
-    public Pose getPose() {
-        //return calculateCenter();
+    /**
+     * Get the current pose with continuous angle (for internal calculations)
+     * @return Pose with continuous angle
+     */
+    public Pose getPoseContinuous() {
         return lastCenter;
+    }
+
+    /**
+     * Get the current pose with normalized angle (0-360)
+     * @return Pose with angle normalized to [0, 360) range
+     */
+    public Pose getPose() {
+        Pose normalizedPose = new Pose(lastCenter);
+        normalizedPose.SetAngle(Calculations.NormalizeAngle360(lastCenter.GetAngleValue()));
+        return normalizedPose;
     }
 
     public Vector getVelocity() {
@@ -205,14 +212,14 @@ public class APOdometry {
     }
 
     public void logCenterPose() {
-        Pose center = getPose();
+        Pose center = getPose(); // This will be normalized
         Vector robotVel = getVelocity();
         SmartDashboard.putNumber("Center X", center.GetXValue());
         SmartDashboard.putNumber("Center Y", center.GetYValue());
         SmartDashboard.putNumber("Center Angle", center.GetAngleValue());
+        SmartDashboard.putNumber("Center Angle Continuous", lastCenter.GetAngleValue()); // Show both
 
         SmartDashboard.putNumber("Speed", robotVel.GetMag());
         SmartDashboard.putNumber("Direction", robotVel.GetAngle().getDegrees());
     }
-
 }
