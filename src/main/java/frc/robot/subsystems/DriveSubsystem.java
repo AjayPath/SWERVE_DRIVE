@@ -85,7 +85,6 @@ public class DriveSubsystem extends SubsystemBase {
         });
   
     APOdom.update();
-    APOdom.logCenterPose();
   }
 
   /**

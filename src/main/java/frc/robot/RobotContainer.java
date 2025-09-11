@@ -20,11 +20,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.Constants.AutoConstants;
 import frc.robot.Constants.DriveConstants;
 import frc.robot.Constants.OIConstants;
-import frc.robot.commands.DrivePoint;
-import frc.robot.commands.DrivePointCommand;
-import frc.robot.commands.DriveToPointCommand;
-import frc.robot.commands.DriveToPositionCommand;
-import frc.robot.commands.TurnToAngleCommand;
+import frc.robot.commands.DriveToPoint;
 import frc.robot.subsystems.DriveSubsystem;
 import frc.robot.utils.Pose;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -46,8 +42,6 @@ public class RobotContainer {
 
   // The driver's controller
   XboxController m_driverController = new XboxController(OIConstants.kDriverControllerPort);
-
-  private final Pose targetPose = new Pose(0.2, 0, 0);
 
   /**
    * The container for the robot. Contains subsystems, OI devices, and commands.
@@ -82,10 +76,7 @@ public class RobotContainer {
   private void configureButtonBindings() {
 
      new JoystickButton(m_driverController, XboxController.Button.kA.value)
-       .whileTrue(new DrivePointCommand(m_robotDrive, targetPose, 0.05, 1));
-
-    // new JoystickButton(m_driverController, XboxController.Button.kA.value)
-    //    .whileTrue(new TurnToAngleCommand(m_robotDrive, 10));
+       .whileTrue(new DriveToPoint(m_robotDrive, 0.2, 0, 0, 0.05, 1));
 
   }
 
@@ -107,7 +98,6 @@ public class RobotContainer {
 
     // Get gyro
     double heading = drive.getHeading();
-    Rotation2d rotation = drive.getGyro();
 
     // Get odometry
     Pose2d wpilibPose = drive.getPose();

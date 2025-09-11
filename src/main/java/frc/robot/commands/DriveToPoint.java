@@ -7,7 +7,7 @@ import frc.robot.utils.Calculations;
 import frc.robot.utils.Pose;
 import frc.robot.utils.Vector;
 
-public class DrivePointCommand extends Command {
+public class DriveToPoint extends Command {
     
     private final DriveSubsystem driveSubsystem;
     private final APPID drivePID;
@@ -34,10 +34,10 @@ public class DrivePointCommand extends Command {
      * @param positionTolerance The tolerance for position (meters)
      * @param angleTolerance The tolerance for angle (degrees)
      */
-    public DrivePointCommand(DriveSubsystem driveSubsystem, Pose targetPose, 
-                            double positionTolerance, double angleTolerance) {
+    public DriveToPoint(DriveSubsystem driveSubsystem, double targetX, double targetY, double targetAngle, double positionTolerance, double angleTolerance) {
+        
         this.driveSubsystem = driveSubsystem;
-        this.targetPose = new Pose(targetPose);
+        this.targetPose = new Pose(targetX, targetY, targetAngle);
         this.positionTolerance = positionTolerance;
         this.angleTolerance = angleTolerance;
         
@@ -55,8 +55,8 @@ public class DrivePointCommand extends Command {
     /**
      * Convenience constructor with default tolerances
      */
-    public DrivePointCommand(DriveSubsystem driveSubsystem, Pose targetPose) {
-        this(driveSubsystem, targetPose, 0.1, 2.0);
+    public DriveToPoint(DriveSubsystem driveSubsystem, double targetX, double targetY, double targetAngle) {
+        this(driveSubsystem, targetX, targetY, targetAngle, 0.1, 2.0);
     }
     
     @Override
