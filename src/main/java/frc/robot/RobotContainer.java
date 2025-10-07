@@ -26,6 +26,7 @@ import frc.robot.utils.Pose;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.RunCommand;
+import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import edu.wpi.first.wpilibj2.command.SwerveControllerCommand;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 import java.util.List;
@@ -75,9 +76,6 @@ public class RobotContainer {
    */
   private void configureButtonBindings() {
 
-     new JoystickButton(m_driverController, XboxController.Button.kA.value)
-       .whileTrue(new DriveToPoint(m_robotDrive, 0.2, 0, 0, 0.05, 1));
-
   }
 
   /**
@@ -94,24 +92,22 @@ public class RobotContainer {
   }
 
   public void logDriveStatus() {
+    
+    // Get drive subsystme instance
     DriveSubsystem drive = getDriveSubsystem();
 
-    // Get gyro
-    double heading = drive.getHeading();
-
     // Get odometry
-    Pose2d wpilibPose = drive.getPose();
     frc.robot.utils.Pose customPose = drive.getCustomPose();
 
     // Log to SmartDashboard
-    SmartDashboard.putNumber("RC Gyro deg", heading);
-    SmartDashboard.putNumber("RC WPILib X", wpilibPose.getX());
-    SmartDashboard.putNumber("RC WPILib Y", wpilibPose.getY());
-    SmartDashboard.putNumber("RC WPILib Angle", wpilibPose.getRotation().getDegrees());
+    // SmartDashboard.putNumber("RC Gyro deg", heading);
+    // SmartDashboard.putNumber("RC WPILib X", wpilibPose.getX());
+    // SmartDashboard.putNumber("RC WPILib Y", wpilibPose.getY());
+    // SmartDashboard.putNumber("RC WPILib Angle", wpilibPose.getRotation().getDegrees());
 
-    SmartDashboard.putNumber("RC APOdometry X", customPose.GetXValue());
-    SmartDashboard.putNumber("RC APOdometry Y", customPose.GetYValue());
-    SmartDashboard.putNumber("RC APOdometry Angle", customPose.GetAngleValue());
+    SmartDashboard.putNumber("APOdometry X", customPose.GetXValue());
+    SmartDashboard.putNumber("APOdometry Y", customPose.GetYValue());
+    SmartDashboard.putNumber("APOdometry Angle", customPose.GetAngleValue());
   }
   
 }
