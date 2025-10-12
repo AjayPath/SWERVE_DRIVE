@@ -7,6 +7,7 @@ package frc.robot;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+
 import frc.robot.subsystems.DriveSubsystem;
 
 /**
@@ -15,10 +16,8 @@ import frc.robot.subsystems.DriveSubsystem;
  * this project, you must also update the Main.java file in the project.
  */
 public class Robot extends TimedRobot {
+  
   private Command m_autonomousCommand;
-
-
-
   private final RobotContainer m_robotContainer;
 
   /**
@@ -26,24 +25,30 @@ public class Robot extends TimedRobot {
    * initialization code.
    */
   public Robot() {
-    // Instantiate our RobotContainer.  This will perform all our button bindings, and put our
-    // autonomous chooser on the dashboard.
     m_robotContainer = new RobotContainer();
-    //m_drive.resetAllOdometryToZero();
+    
+    initializeGyro();
+  }
+
+  /**
+   * Initializes the gyro on a separate thread to allow for stabilization delay.
+   * Waits 1 second for gyro to stabilize, then resets gyro and odometry.
+   */
+  private void initializeGyro() {
     DriveSubsystem drive = m_robotContainer.getDriveSubsystem();
     
-    // Start a thread to wait for gyro boot
     new Thread(() -> {
       try {
-        Thread.sleep(1000); // wait 1 second for gyro to stabilize
-      }
-      catch (InterruptedException e) {
+        // Wait for gyro to stabilize after power-on
+        Thread.sleep(1000);
+      } catch (InterruptedException e) {
         e.printStackTrace();
       }
-        drive.resetGyro();               // actually set gyro yaw to 0
-        drive.resetAllOdometryToZero(); // then reset odometry using gyro=0
-      }).start();
-    
+      
+      // Reset gyro to zero, then reset odometry using calibrated gyro
+      drive.resetGyro();
+      drive.resetAllOdometryToZero();
+    }).start();
   }
 
   /**
@@ -55,68 +60,76 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void robotPeriodic() {
-    // Runs the Scheduler.  This is responsible for polling buttons, adding newly-scheduled
-    // commands, running already-scheduled commands, removing finished or interrupted commands,
-    // and running subsystem periodic() methods.  This must be called from the robot's periodic
-    // block in order for anything in the Command-based framework to work.
+    // Run the command scheduler - required for command-based framework
     CommandScheduler.getInstance().run();
+    
+    // Log drive telemetry to SmartDashboard
     m_robotContainer.logDriveStatus();
   }
 
-  /** This function is called once each time the robot enters Disabled mode. */
+  /**
+   * This function is called once each time the robot enters Disabled mode.
+   */
   @Override
-  public void disabledInit() {
-    //m_robotContainer.getDriveSubsystem().resetAllOdometryToZero();
-  } 
+  public void disabledInit() {}
 
   @Override
   public void disabledPeriodic() {}
 
-  /** This autonomous runs the autonomous command selected by your {@link RobotContainer} class. */
+  /**
+   * This autonomous runs the autonomous command selected by your {@link RobotContainer} class.
+   */
   @Override
   public void autonomousInit() {
     m_autonomousCommand = m_robotContainer.getAutonomousCommand();
 
-    // schedule the autonomous command (example)
+    // Schedule the autonomous command
     if (m_autonomousCommand != null) {
       m_autonomousCommand.schedule();
     }
   }
 
-  /** This function is called periodically during autonomous. */
+  /**
+   * This function is called periodically during autonomous.
+   */
   @Override
   public void autonomousPeriodic() {}
 
   @Override
   public void teleopInit() {
-    // This makes sure that the autonomous stops running when
-    // teleop starts running. If you want the autonomous to
-    // continue until interrupted by another command, remove
-    // this line or comment it out.
+    // Cancel autonomous command when teleop starts
     if (m_autonomousCommand != null) {
       m_autonomousCommand.cancel();
     }
   }
 
-  /** This function is called periodically during operator control. */
+  /**
+   * This function is called periodically during operator control.
+   */
   @Override
   public void teleopPeriodic() {}
 
   @Override
   public void testInit() {
-    // Cancels all running commands at the start of test mode.
+    // Cancel all running commands at the start of test mode
     CommandScheduler.getInstance().cancelAll();
   }
 
-  /** This function is called periodically during test mode. */
+  /**
+   * This function is called periodically during test mode.
+   */
   @Override
   public void testPeriodic() {}
 
-  /** This function is called once when the robot is first started up. */
+  /**
+   * This function is called once when the robot is first started up.
+   */
   @Override
   public void simulationInit() {}
 
-  /** This function is called periodically whilst in simulation. */
+  /**
+   * This function is called periodically whilst in simulation.
+   */
   @Override
   public void simulationPeriodic() {}
 }

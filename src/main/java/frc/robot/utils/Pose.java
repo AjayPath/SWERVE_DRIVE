@@ -1,217 +1,251 @@
+// Copyright (c) FIRST and other WPILib contributors.
+// Open Source Software; you can modify and/or share it under the terms of
+// the WPILib BSD license file in the root directory of this project.
+
 package frc.robot.utils;
 
-// Import the needed libraries
-import edu.wpi.first.math.geometry.Rotation2d;
-
+/**
+ * Represents a 2D pose with x, y position and heading angle.
+ * Stores raw angle values without automatic wrapping for consistent odometry tracking.
+ */
 public class Pose {
-    
-   // Private variables
-   private double x; 
-   private double y; 
-   private double angle; 
+  
+  private double x;
+  private double y;
+  private double angle;
 
-    /**
-     * Create a new pose
-     * @param _x x comp
-     * @param _y y comp
-     * @param _angle angle of the pose
-     */
+  // ===========================================================================================
+  // Constructors
+  // ===========================================================================================
 
-     public Pose(double _x, double _y, double _angle) {
-        x = _x;
-        y = _y;
-        angle = _angle;  // FIXED: Don't wrap on construction, store raw angle
-     }
+  /**
+   * Creates a pose with specified position and angle.
+   * 
+   * @param _x x component in inches
+   * @param _y y component in inches
+   * @param _angle heading angle in degrees
+   */
+  public Pose(double _x, double _y, double _angle) {
+    x = _x;
+    y = _y;
+    angle = _angle;
+  }
 
-    /**
-     * Create a new pose at 0 deg (like C++ version)
-     */
+  /**
+   * Creates a pose at origin with 0 degree heading.
+   */
+  public Pose() {
+    x = 0;
+    y = 0;
+    angle = 0;
+  }
 
-     public Pose() {
-        x = 0;
-        y = 0;
-        angle = 0;  // FIXED: Changed from 90 to 0 to match C++ default
-     }
+  /**
+   * Copy constructor - creates a new pose from an existing pose.
+   * 
+   * @param other the pose to copy
+   */
+  public Pose(Pose other) {
+    this.x = other.x;
+    this.y = other.y;
+    this.angle = other.angle;
+  }
 
-     public Pose (Pose other) {
-      this.x = other.x;
-      this.y = other.y;
-      this.angle = other.angle;
-     }
+  // ===========================================================================================
+  // Pose Operations
+  // ===========================================================================================
 
-    /**
-     * Get the x comp in inches
-     * @return x comp
-     */
+  /**
+   * Reflects the pose across the y-axis.
+   */
+  public void reflectY() {
+    this.x = -this.x;
+    this.angle = 180 - this.angle;
+    this.angle = Calculations.NormalizeAngle(this.angle);
+  }
 
-     public double GetXValue() {
-        return x;
-     }
+  /**
+   * Adds a vector to the pose position.
+   * 
+   * @param v the vector to add
+   */
+  public void AddVector(Vector v) {
+    x += v.GetXValue();
+    y += v.GetYValue();
+  }
 
-    /**
-     * Get the y comp in inches
-     * @return y comp
-     */
+  /**
+   * Subtracts a vector from the pose position.
+   * 
+   * @param v the vector to subtract
+   */
+  public void SubtractVector(Vector v) {
+    x -= v.GetXValue();
+    y -= v.GetYValue();
+  }
 
-     public double GetYValue() {
-        return y;
-     }
+  /**
+   * Calculates the displacement vector from another pose to this pose.
+   * 
+   * @param p the pose to subtract from this pose
+   * @return displacement vector
+   */
+  public Vector Subtract(Pose p) {
+    return new Vector(x - p.GetXValue(), y - p.GetYValue());
+  }
 
-    /**
-     * Get the angle in degrees - RAW angle without wrapping
-     * @return angle in degrees
-     */
+  /**
+   * Transforms the pose from robot-relative to field-relative coordinates.
+   * 
+   * @param GyroAngle the robot's heading in degrees
+   */
+  public void Transform(double GyroAngle) {
+    angle = angle + GyroAngle;
+  }
 
-     public double GetAngleValue() {
-        return angle;  // FIXED: Return raw angle like C++ version
-     }
+  // ===========================================================================================
+  // Getters
+  // ===========================================================================================
 
-    /**
-     * Get the angle wrapped to [-180, 180] for display/comparison purposes
-     * @return wrapped angle in degrees
-     */
-     public double GetWrappedAngle() {
-        return wrapTo180(angle);
-     }
+  /**
+   * Gets the x component.
+   * 
+   * @return x component in inches
+   */
+  public double GetXValue() {
+    return x;
+  }
 
-    /**
-     * Set the x componenet in inches
-     * @param _x x comp
-     */
+  /**
+   * Gets the y component.
+   * 
+   * @return y component in inches
+   */
+  public double GetYValue() {
+    return y;
+  }
 
-     public void SetX(double _x) {
-        x = _x;
-     }
+  /**
+   * Gets the raw angle without wrapping.
+   * 
+   * @return angle in degrees
+   */
+  public double GetAngleValue() {
+    return angle;
+  }
 
-    /**
-     * Set the y componenet in inches
-     * @param _y y comp
-     */
+  /**
+   * Gets the angle wrapped to [-180, 180] for display or comparison.
+   * 
+   * @return wrapped angle in degrees
+   */
+  public double GetWrappedAngle() {
+    return wrapTo180(angle);
+  }
 
-     public void SetY(double _y) {
-        y = _y;
-     }
+  // ===========================================================================================
+  // Setters
+  // ===========================================================================================
 
-    /**
-     * Set the angle in degrees - stores raw angle
-     * @param _angle new angle
-     */
+  /**
+   * Sets the x component.
+   * 
+   * @param _x new x component in inches
+   */
+  public void SetX(double _x) {
+    x = _x;
+  }
 
-     public void SetAngle(double _angle) {
-        angle = _angle;  // FIXED: Store raw angle like C++
-     }
+  /**
+   * Sets the y component.
+   * 
+   * @param _y new y component in inches
+   */
+  public void SetY(double _y) {
+    y = _y;
+  }
 
-    /**
-     * Reflect the pose along the y axis
-     */
+  /**
+   * Sets the angle without wrapping.
+   * 
+   * @param _angle new angle in degrees
+   */
+  public void SetAngle(double _angle) {
+    angle = _angle;
+  }
 
-     public void reflectY() {
-      this.x = -this.x;
-      this.angle = 180 - this.angle;
-      this.angle = Calculations.NormalizeAngle(this.angle);
-     }
+  /**
+   * Sets all pose components.
+   * 
+   * @param _x new x component in inches
+   * @param _y new y component in inches
+   * @param _angle new angle in degrees
+   */
+  public void SetPose(double _x, double _y, double _angle) {
+    x = _x;
+    y = _y;
+    angle = _angle;
+  }
 
-    /**
-     * Add vector to the pose
-     * @param v the vector to add
-     */
+  /**
+   * Sets this pose to match another pose.
+   * 
+   * @param other the pose to copy from
+   */
+  public void SetPose(Pose other) {
+    x = other.GetXValue();
+    y = other.GetYValue();
+    angle = other.GetAngleValue();
+  }
 
-     public void AddVector(Vector v) {
-        x += v.GetXValue();
-        y += v.GetYValue();
-     }
+  // ===========================================================================================
+  // Utility Methods
+  // ===========================================================================================
 
-    /**
-     * Subtract vector from the pose
-     * @param v the vector to subtract
-     */
+  /**
+   * Wraps angle to [-180, 180] range.
+   * 
+   * @param angle angle to wrap
+   * @return wrapped angle in degrees
+   */
+  private double wrapTo180(double angle) {
+    while (angle <= -180) angle += 360;
+    while (angle > 180) angle -= 360;
+    return angle;
+  }
 
-     public void SubtractVector(Vector v) {
-        x -= v.GetXValue();
-        y -= v.GetYValue();
-     }
+  /**
+   * Prints the pose with a prefix string.
+   * 
+   * @param pre prefix string to display before pose values
+   */
+  public void Print(String pre) {
+    System.out.printf("%s: x:%.2f y:%.2f a:%.2f\n", pre, x, y, angle);
+  }
 
-    /**
-     * Subtract a pose from another pose
-     * @param p The pose to subtract
-     * @return the resultant vector
-     */
+  /**
+   * Prints the pose with a prefix string and number.
+   * 
+   * @param pre prefix string to display before pose values
+   * @param i number to display with prefix
+   */
+  public void Print(String pre, int i) {
+    System.out.printf("%s %d: x:%.2f y:%.2f a:%.2f\n", pre, i, x, y, angle);
+  }
 
-     public Vector Subtract(Pose p) {
-        return new Vector(x - p.GetXValue(), y - p.GetYValue());
-     }
+  /**
+   * Prints the pose with only a number prefix.
+   * 
+   * @param i number to display before pose values
+   */
+  public void Print(int i) {
+    System.out.printf("%d: x:%.2f y:%.2f a:%.2f\n", i, x, y, angle);
+  }
 
-    /**
-     * Sets the x y and angle comps
-     * @param _x new x comp
-     * @param _y new y comp
-     * @param _angle new angle comp
-     */
-
-     public void SetPose(double _x, double _y, double _angle) {
-        x = _x;
-        y = _y;
-        angle = _angle;  // FIXED: Store raw angle
-     }
-
-    /**
-     * Sets the x y and angle componenets
-     * @param _pose new pose
-     */
-
-     public void SetPose(Pose other) {
-        x = other.GetXValue();
-        y = other.GetYValue();
-        angle = other.GetAngleValue();  // FIXED: Use raw angle
-     }
-
-     // Keep the wrapping function for internal use when needed
-     private double wrapTo180(double angle) {
-        while (angle <= -180) angle += 360;
-        while (angle > 180) angle -= 360;
-        return angle;
-     }
-
-    /**
-     * Change the frame of reference from robot to field
-     * @param GyroAngle the angle of the gyro as a double, but in degrees
-     */
-
-     public void Transform(double GyroAngle) {
-        angle = angle + GyroAngle;
-        // FIXED: Don't automatically normalize - let the caller decide
-     }
-
-    /**
-     * Print the pose with a prefix string
-     * @param pre String to print before the pose
-     */
-    public void Print(String pre) {
-        System.out.printf("%s: x:%.2f y:%.2f a:%.2f\n", pre, x, y, angle);
-    }
-
-    /**
-     * Print the pose with a prefix and a number
-     * @param pre String to print before the pose
-     * @param i   Number to print before the pose
-     */
-    public void Print(String pre, int i) {
-        System.out.printf("%s %d: x:%.2f y:%.2f a:%.2f\n", pre, i, x, y, angle);
-    }
-
-    /**
-     * Print the pose with a number only
-     * @param i Number to print before the pose
-     */
-    public void Print(int i) {
-        System.out.printf("%d: x:%.2f y:%.2f a:%.2f\n", i, x, y, angle);
-    }
-
-    /**
-     * Print the pose without any prefix
-     */
-    public void Print() {
-        System.out.printf("x:%.2f y:%.2f a:%.2f\n", x, y, angle);
-    }
-     
+  /**
+   * Prints the pose without any prefix.
+   */
+  public void Print() {
+    System.out.printf("x:%.2f y:%.2f a:%.2f\n", x, y, angle);
+  }
 }
