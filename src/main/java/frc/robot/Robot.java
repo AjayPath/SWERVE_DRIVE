@@ -101,6 +101,8 @@ public class Robot extends TimedRobot {
     if (m_autonomousCommand != null) {
       m_autonomousCommand.cancel();
     }
+    DriveSubsystem drive = m_robotContainer.getDriveSubsystem();
+    drive.resetSlewRateLimiters();
   }
 
   /**

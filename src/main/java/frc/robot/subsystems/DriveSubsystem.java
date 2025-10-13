@@ -24,6 +24,7 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants.DriveConstants;
 import frc.robot.utils.APOdometry;
 import frc.robot.utils.Pose;
+import frc.robot.utils.SlewRateLimiter;
 
 /**
  * Swerve drive subsystem for a MAXSwerve robot.
@@ -39,6 +40,7 @@ import frc.robot.utils.Pose;
  * 
  * Control:
  * - Field-relative and robot-relative drive modes
+ * - Slew rate limiting for smooth acceleration
  * - X-formation for defensive positioning
  * - Automatic wheel speed desaturation
  */
@@ -83,6 +85,14 @@ public class DriveSubsystem extends SubsystemBase {
       m_gyro);
 
   // ===========================================================================================
+  // Rate Limiting
+  // ===========================================================================================
+
+  private final SlewRateLimiter xLimiter = new SlewRateLimiter(2, 20);  // X-axis (forward/backward)
+  private final SlewRateLimiter yLimiter = new SlewRateLimiter(2, 20);  // Y-axis (left/right)
+  private final SlewRateLimiter rLimiter = new SlewRateLimiter(3, 30);  // Rotation
+
+  // ===========================================================================================
   // Constructor
   // ===========================================================================================
 
@@ -110,6 +120,7 @@ public class DriveSubsystem extends SubsystemBase {
 
   /**
    * Drives the robot with specified velocities.
+   * Applies slew rate limiting for smooth acceleration.
    * 
    * @param xSpeed speed in x direction (forward/backward), normalized -1 to 1
    * @param ySpeed speed in y direction (left/right), normalized -1 to 1
@@ -117,6 +128,11 @@ public class DriveSubsystem extends SubsystemBase {
    * @param fieldRelative true for field-relative control, false for robot-relative
    */
   public void drive(double xSpeed, double ySpeed, double rot, boolean fieldRelative) {
+    // Apply slew rate limiting to prevent sudden acceleration
+    xSpeed = xLimiter.CalculateSlewRate(xSpeed);
+    ySpeed = yLimiter.CalculateSlewRate(ySpeed);
+    rot = rLimiter.CalculateSlewRate(rot);
+
     // Convert normalized inputs to physical units
     double xSpeedDelivered = xSpeed * DriveConstants.kMaxSpeedMetersPerSecond;
     double ySpeedDelivered = ySpeed * DriveConstants.kMaxSpeedMetersPerSecond;
@@ -319,5 +335,19 @@ public class DriveSubsystem extends SubsystemBase {
    */
   public StatusSignal<AngularVelocity> getTurnRate() {
     return m_gyro.getAngularVelocityZWorld();
+  }
+
+  // ===========================================================================================
+  // Rate Limiter Management
+  // ===========================================================================================
+
+  /**
+   * Resets all slew rate limiters to zero.
+   * Call this at the start of teleop to prevent sudden jumps from previous values.
+   */
+  public void resetSlewRateLimiters() {
+    xLimiter.ResetSlewRate(0.0);
+    yLimiter.ResetSlewRate(0.0);
+    rLimiter.ResetSlewRate(0.0);
   }
 }
