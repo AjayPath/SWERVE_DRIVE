@@ -4,6 +4,7 @@
 
 package frc.robot.commands;
 
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 
 import frc.robot.subsystems.DriveSubsystem;
@@ -55,7 +56,7 @@ public class DriveToPoint extends Command {
   private static final double kDriveP = 0.6;           // Proportional gain for drive
   private static final double kDriveI = 0.0;           // Integral gain for drive
   private static final double kDriveD = 0.05;          // Derivative gain for drive
-  private static final double kMaxDriveSpeed = 0.5;    // Maximum translation speed (0-1)
+  private static final double kMaxDriveSpeed = 0.125;    // Maximum translation speed (0-1)
 
   // ===========================================================================================
   // PID Constants - Rotation
@@ -64,7 +65,7 @@ public class DriveToPoint extends Command {
   private static final double kTurnP = 0.02;              // Proportional gain for rotation
   private static final double kTurnI = 0.0;               // Integral gain for rotation
   private static final double kTurnD = 0.0;               // Derivative gain for rotation
-  private static final double kMaxRotationSpeed = 1.75;   // Maximum rotation speed (rad/s)
+  private static final double kMaxRotationSpeed = .25;   // Maximum rotation speed (rad/s)
 
   // ===========================================================================================
   // Constructors
@@ -96,7 +97,7 @@ public class DriveToPoint extends Command {
     // Goal: Drive angle error toward zero
     this.turnPID = new APPID(kTurnP, kTurnI, kTurnD, angleTolerance);
     this.turnPID.setMaxOutput(kMaxRotationSpeed);
-    this.turnPID.setDesiredValue(0.0); // Always targeting zero angle error
+    //this.turnPID.setDesiredValue(0.0); // Always targeting zero angle error
 
     addRequirements(driveSubsystem);
   }
@@ -151,6 +152,9 @@ public class DriveToPoint extends Command {
     double xVel = speed * Math.cos(angleToTargetRad);
     double yVel = speed * Math.sin(angleToTargetRad);
 
+    SmartDashboard.putNumber("X ERROR", difference.GetXValue());
+    SmartDashboard.putNumber("Y ERROR", difference.GetYValue());
+
     // ===========================================================================================
     // Rotation Control
     // ===========================================================================================
@@ -159,11 +163,16 @@ public class DriveToPoint extends Command {
     double currentAngle = Calculations.NormalizeAngle360(currentPose.GetAngleValue());
     double targetAngle = Calculations.NormalizeAngle360(targetPose.GetAngleValue());
 
+    turnPID.setDesiredValue(targetAngle);
+
     // Calculate shortest angular path (handles wrapping, e.g., 350° to 10°)
     double angleError = Calculations.shortestAngularDistance(targetAngle, currentAngle);
+    SmartDashboard.putNumber("ANGLE_ERROR", angleError);
 
     // PID on angle error (negative sign for correct rotation direction)
-    double rotationOutput = -turnPID.calcPID(angleError);
+    turnPID.setDesiredValue(angleError);
+    double rotationOutput = turnPID.calcPID(0);
+    SmartDashboard.putNumber("TARGET ANGLE", targetAngle);
 
     // ===========================================================================================
     // Drive Robot
@@ -171,7 +180,7 @@ public class DriveToPoint extends Command {
 
     // Apply both translation and rotation simultaneously
     // Field-relative mode ensures x/y velocities are relative to field
-    driveSubsystem.drive(xVel, yVel, rotationOutput, true);
+    driveSubsystem.drive(xVel, yVel, rotationOutput, false);
   }
 
   @Override

@@ -19,6 +19,7 @@ import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 import frc.robot.Constants.DriveConstants;
@@ -88,9 +89,9 @@ public class DriveSubsystem extends SubsystemBase {
   // Rate Limiting
   // ===========================================================================================
 
-  private final SlewRateLimiter xLimiter = new SlewRateLimiter(2, 20);  // X-axis (forward/backward)
-  private final SlewRateLimiter yLimiter = new SlewRateLimiter(2, 20);  // Y-axis (left/right)
-  private final SlewRateLimiter rLimiter = new SlewRateLimiter(3, 30);  // Rotation
+  private final SlewRateLimiter xLimiter = new SlewRateLimiter(500, 20000);  // X-axis (forward/backward)
+  private final SlewRateLimiter yLimiter = new SlewRateLimiter(500, 20000);  // Y-axis (left/right)
+  private final SlewRateLimiter rLimiter = new SlewRateLimiter(24, 240);  // Rotation
 
   // ===========================================================================================
   // Constructor
@@ -112,6 +113,7 @@ public class DriveSubsystem extends SubsystemBase {
   public void periodic() {
     // Update custom odometry every cycle (20ms)
     APOdom.update();
+    SmartDashboard.putNumber("Gryooo", getHeading());
   }
 
   // ===========================================================================================
@@ -129,9 +131,9 @@ public class DriveSubsystem extends SubsystemBase {
    */
   public void drive(double xSpeed, double ySpeed, double rot, boolean fieldRelative) {
     // Apply slew rate limiting to prevent sudden acceleration
-    xSpeed = xLimiter.CalculateSlewRate(xSpeed);
-    ySpeed = yLimiter.CalculateSlewRate(ySpeed);
-    rot = rLimiter.CalculateSlewRate(rot);
+    //xSpeed = xLimiter.CalculateSlewRate(xSpeed);
+    //ySpeed = yLimiter.CalculateSlewRate(ySpeed);
+    //rot = rLimiter.CalculateSlewRate(rot);
 
     // Convert normalized inputs to physical units
     double xSpeedDelivered = xSpeed * DriveConstants.kMaxSpeedMetersPerSecond;
