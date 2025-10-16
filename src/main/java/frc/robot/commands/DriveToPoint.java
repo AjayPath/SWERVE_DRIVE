@@ -11,19 +11,20 @@ import frc.robot.subsystems.DriveSubsystem;
 import frc.robot.utils.APPID;
 import frc.robot.utils.Calculations;
 import frc.robot.utils.Pose;
-import frc.robot.utils.Vector;
+import frc.robot.utils.SlewRateLimiter;
 
 /**
  * Command to drive the robot to a specific field position and orientation.
  * 
  * Control Strategy:
- * - Translation: PID controller drives distance-to-target toward zero
+ * - Translation: Independent X and Y PID controllers for precise positioning
  * - Rotation: Separate PID controller minimizes angle error
- * - Both controllers run simultaneously for smooth path following
+ * - Slew Rate Limiting: Smooths acceleration for mechanical safety and traction
+ * - All controllers run simultaneously for smooth, coordinated motion
  * 
  * Coordinate System:
  * - Field-relative control (x, y in meters, angle in degrees)
- * - Velocity components calculated from angle-to-target
+ * - X/Y controlled independently in field frame
  * - Shortest path rotation automatically calculated
  * 
  * Completion:
@@ -42,9 +43,13 @@ public class DriveToPoint extends Command {
   // Control Parameters
   // ===========================================================================================
 
-  private final APPID xPID;  // Controls translation speed based on distance error
-  private final APPID yPID;
-  private final APPID turnPID;   // Controls rotation speed based on angle error
+  private final APPID xPID;      // Controls X-axis translation
+  private final APPID yPID;      // Controls Y-axis translation
+  private final APPID turnPID;   // Controls rotation
+
+  private final SlewRateLimiter xLimiter;   // Smooths X acceleration
+  private final SlewRateLimiter yLimiter;   // Smooths Y acceleration
+  private final SlewRateLimiter rotLimiter; // Smooths rotation acceleration
 
   private final Pose targetPose;          // Desired final position and orientation
   private final double positionTolerance; // Acceptable position error (meters)
@@ -54,19 +59,19 @@ public class DriveToPoint extends Command {
   // PID Constants - X Controller
   // ===========================================================================================
 
-  private static final double kXP = 0.6;           // Proportional gain for drive
-  private static final double kXI = 0.0;           // Integral gain for drive
-  private static final double kXD = 0.05;          // Derivative gain for drive
-  private static final double kXMaxDriveSpeed = 0.125;    // Maximum translation speed (0-1)
+  private static final double kXP = 0.6;              // Proportional gain for X-axis
+  private static final double kXI = 0.0;              // Integral gain for X-axis
+  private static final double kXD = 0.05;             // Derivative gain for X-axis
+  private static final double kXMaxSpeed = 0.125;     // Maximum X velocity (0-1 normalized)
 
   // ===========================================================================================
-  // PID Constants - X Controller
+  // PID Constants - Y Controller
   // ===========================================================================================
 
-  private static final double kYP = 0.6;           // Proportional gain for drive
-  private static final double kYI = 0.0;           // Integral gain for drive
-  private static final double kYD = 0.05;          // Derivative gain for drive
-  private static final double kYMaxDriveSpeed = 0.125;    // Maximum translation speed (0-1)
+  private static final double kYP = 0.6;              // Proportional gain for Y-axis
+  private static final double kYI = 0.0;              // Integral gain for Y-axis
+  private static final double kYD = 0.05;             // Derivative gain for Y-axis
+  private static final double kYMaxSpeed = 0.125;     // Maximum Y velocity (0-1 normalized)
 
   // ===========================================================================================
   // PID Constants - Rotation
@@ -75,7 +80,18 @@ public class DriveToPoint extends Command {
   private static final double kTurnP = 0.02;              // Proportional gain for rotation
   private static final double kTurnI = 0.0;               // Integral gain for rotation
   private static final double kTurnD = 0.0;               // Derivative gain for rotation
-  private static final double kMaxRotationSpeed = .25;   // Maximum rotation speed (rad/s)
+  private static final double kMaxRotationSpeed = 0.25;   // Maximum rotation speed (0-1 normalized)
+
+  // ===========================================================================================
+  // Slew Rate Limiting Constants
+  // ===========================================================================================
+
+  private static final double kTranslationRateLimit = 2.0;  // Max acceleration (m/s²)
+  private static final double kTranslationJerkLimit = 5.0;  // Max jerk (m/s³)
+  private static final double kRotationRateLimit = 3.0;     // Max rotational acceleration (rad/s²)
+  private static final double kRotationJerkLimit = 8.0;     // Max rotational jerk (rad/s³)
+
+
 
   // ===========================================================================================
   // Constructors
@@ -98,18 +114,22 @@ public class DriveToPoint extends Command {
     this.positionTolerance = positionTolerance;
     this.angleTolerance = angleTolerance;
 
-    // Initialize translation PID controller
-    // Goal: Drive distance-to-target toward zero
+    // Initialize X-axis PID controller
     this.xPID = new APPID(kXP, kXI, kXD, positionTolerance);
-    this.xPID.setMaxOutput(kXMaxDriveSpeed);
+    this.xPID.setMaxOutput(kXMaxSpeed);
 
+    // Initialize Y-axis PID controller
     this.yPID = new APPID(kYP, kYI, kYD, positionTolerance);
-    this.yPID.setMaxOutput(kYMaxDriveSpeed);
+    this.yPID.setMaxOutput(kYMaxSpeed);
 
     // Initialize rotation PID controller
-    // Goal: Drive angle error toward zero
     this.turnPID = new APPID(kTurnP, kTurnI, kTurnD, angleTolerance);
     this.turnPID.setMaxOutput(kMaxRotationSpeed);
+
+    // Initialize slew rate limiters for smooth acceleration
+    this.xLimiter = new SlewRateLimiter(kTranslationRateLimit, kTranslationJerkLimit);
+    this.yLimiter = new SlewRateLimiter(kTranslationRateLimit, kTranslationJerkLimit);
+    this.rotLimiter = new SlewRateLimiter(kRotationRateLimit, kRotationJerkLimit);
 
     addRequirements(driveSubsystem);
   }
@@ -132,13 +152,25 @@ public class DriveToPoint extends Command {
 
   @Override
   public void initialize() {
+    // Reset all PID controllers
     xPID.reset();
     yPID.reset();
     turnPID.reset();
 
+    // Reset slew rate limiters to zero (start from rest)
+    xLimiter.ResetSlewRate(0.0);
+    yLimiter.ResetSlewRate(0.0);
+    rotLimiter.ResetSlewRate(0.0);
+
+    // Log target for debugging
     SmartDashboard.putNumber("TARGET_X", targetPose.GetXValue());
     SmartDashboard.putNumber("TARGET_Y", targetPose.GetYValue());
     SmartDashboard.putNumber("TARGET_ANGLE", targetPose.GetAngleValue());
+
+    System.out.println("DriveToPoint: Starting - Target: (" + 
+                       targetPose.GetXValue() + ", " + 
+                       targetPose.GetYValue() + ", " + 
+                       targetPose.GetAngleValue() + "°)");
   }
 
   @Override
@@ -147,30 +179,26 @@ public class DriveToPoint extends Command {
     Pose currentPose = driveSubsystem.getCustomPose();
 
     // ===========================================================================================
-    // Translation Control
+    // Translation Control - Independent X and Y
     // ===========================================================================================
 
-    // Calculate vector from current position to target
-    Vector difference = targetPose.Subtract(currentPose);
-    double distanceToTarget = difference.GetMag();
-    double xToTarget = difference.GetXValue();
-    double yToTarget = difference.GetYValue();
+    // Calculate position errors in field coordinates
+    double xError = targetPose.GetXValue() - currentPose.GetXValue();
+    double yError = targetPose.GetYValue() - currentPose.GetYValue();
 
-    // PID drives distance toward zero
-    // Setpoint = current distance, measurement = 0, so error = distanc
-    xPID.setDesiredValue(xToTarget);
-    yPID.setDesiredValue(yToTarget);
+    // PID controllers drive each axis independently toward zero error
+    xPID.setDesiredValue(0);
+    yPID.setDesiredValue(0);
 
-    double xSpeed = xPID.calcPID(0);
-    double ySpeed = yPID.calcPID(0);
+    double xSpeed = xPID.calcPID(xError);
+    double ySpeed = yPID.calcPID(yError);
 
-    // Convert speed to x/y velocity components using direction to target
-    double angleToTargetRad = difference.GetAngle().getRadians();
-    double xVel = xSpeed * Math.cos(angleToTargetRad);
-    double yVel = ySpeed * Math.sin(angleToTargetRad);
+    // Apply slew rate limiting for smooth acceleration
+    double xVel = xLimiter.CalculateSlewRate(xSpeed);
+    double yVel = yLimiter.CalculateSlewRate(ySpeed);
 
-    SmartDashboard.putNumber("X ERROR", difference.GetXValue());
-    SmartDashboard.putNumber("Y ERROR", difference.GetYValue());
+    // Calculate distance for debugging
+    double distanceToTarget = Math.sqrt(xError * xError + yError * yError);
 
     // ===========================================================================================
     // Rotation Control
@@ -180,24 +208,39 @@ public class DriveToPoint extends Command {
     double currentAngle = Calculations.NormalizeAngle360(currentPose.GetAngleValue());
     double targetAngle = Calculations.NormalizeAngle360(targetPose.GetAngleValue());
 
-    turnPID.setDesiredValue(targetAngle);
-
     // Calculate shortest angular path (handles wrapping, e.g., 350° to 10°)
-    double angleError = Calculations.shortestAngularDistance(targetAngle, currentAngle);
-    SmartDashboard.putNumber("ANGLE_ERROR", angleError);
+    double angleError = Calculations.shortestAngularDistance(currentAngle, targetAngle);
 
-    // PID on angle error (negative sign for correct rotation direction)
-    turnPID.setDesiredValue(angleError);
-    double rotationOutput = turnPID.calcPID(0);
-    SmartDashboard.putNumber("TARGET ANGLE", targetAngle);
+    // PID drives angle error toward zero
+    turnPID.setDesiredValue(0);
+    double rotationSpeed = turnPID.calcPID(angleError);
+
+    // Apply slew rate limiting for smooth rotation
+    double rotationOutput = rotLimiter.CalculateSlewRate(rotationSpeed);
+
+    // ===========================================================================================
+    // Logging
+    // ===========================================================================================
+
+    SmartDashboard.putNumber("X_ERROR", xError);
+    SmartDashboard.putNumber("Y_ERROR", yError);
+    SmartDashboard.putNumber("DISTANCE_TO_TARGET", distanceToTarget);
+    SmartDashboard.putNumber("ANGLE_ERROR", angleError);
+    
+    SmartDashboard.putNumber("X_VEL_RAW", xSpeed);
+    SmartDashboard.putNumber("X_VEL_LIMITED", xVel);
+    SmartDashboard.putNumber("Y_VEL_RAW", ySpeed);
+    SmartDashboard.putNumber("Y_VEL_LIMITED", yVel);
+    SmartDashboard.putNumber("ROT_VEL_RAW", rotationSpeed);
+    SmartDashboard.putNumber("ROT_VEL_LIMITED", rotationOutput);
 
     // ===========================================================================================
     // Drive Robot
     // ===========================================================================================
 
     // Apply both translation and rotation simultaneously
-    // Field-relative mode ensures x/y velocities are relative to field
-    driveSubsystem.drive(xVel, yVel, rotationOutput, false);
+    // Field-relative mode (true) ensures x/y velocities are relative to field frame
+    driveSubsystem.drive(xVel, yVel, rotationOutput, true);
   }
 
   @Override
@@ -206,7 +249,10 @@ public class DriveToPoint extends Command {
     driveSubsystem.drive(0.0, 0.0, 0.0, true);
 
     if (interrupted) {
-      System.out.println("DrivePoint: Command interrupted");
+      System.out.println("DriveToPoint: Command interrupted at (" + 
+                         driveSubsystem.getCustomPose().GetXValue() + ", " + 
+                         driveSubsystem.getCustomPose().GetYValue() + ", " + 
+                         driveSubsystem.getCustomPose().GetAngleValue() + "°)");
     } else {
       // Command completed successfully - snap odometry to exact target
       // This prevents accumulated error from affecting subsequent paths
@@ -215,7 +261,7 @@ public class DriveToPoint extends Command {
           targetPose.GetYValue(),
           targetPose.GetAngleValue());
 
-      System.out.println("DrivePoint: Command completed - Pose updated to target");
+      System.out.println("DriveToPoint: Command completed successfully - Pose updated to target");
     }
   }
 
@@ -223,14 +269,16 @@ public class DriveToPoint extends Command {
   public boolean isFinished() {
     Pose currentPose = driveSubsystem.getCustomPose();
 
-    // Check if position is within tolerance
-    double distanceToTarget = targetPose.Subtract(currentPose).GetMag();
+    // Calculate position error
+    double xError = targetPose.GetXValue() - currentPose.GetXValue();
+    double yError = targetPose.GetYValue() - currentPose.GetYValue();
+    double distanceToTarget = Math.sqrt(xError * xError + yError * yError);
     boolean positionOnTarget = distanceToTarget <= positionTolerance;
 
-    // Check if angle is within tolerance (using shortest path)
+    // Calculate angle error (using shortest path)
     double currentAngle = Calculations.NormalizeAngle360(currentPose.GetAngleValue());
     double targetAngle = Calculations.NormalizeAngle360(targetPose.GetAngleValue());
-    double angleError = Math.abs(Calculations.shortestAngularDistance(targetAngle, currentAngle));
+    double angleError = Math.abs(Calculations.shortestAngularDistance(currentAngle, targetAngle));
     boolean angleOnTarget = angleError <= angleTolerance;
 
     // Command finishes only when both position AND angle are satisfied
@@ -249,7 +297,9 @@ public class DriveToPoint extends Command {
    */
   public double getDistanceToTarget() {
     Pose currentPose = driveSubsystem.getCustomPose();
-    return targetPose.Subtract(currentPose).GetMag();
+    double xError = targetPose.GetXValue() - currentPose.GetXValue();
+    double yError = targetPose.GetYValue() - currentPose.GetYValue();
+    return Math.sqrt(xError * xError + yError * yError);
   }
 
   /**
@@ -262,6 +312,15 @@ public class DriveToPoint extends Command {
     Pose currentPose = driveSubsystem.getCustomPose();
     double currentAngle = Calculations.NormalizeAngle360(currentPose.GetAngleValue());
     double targetAngle = Calculations.NormalizeAngle360(targetPose.GetAngleValue());
-    return Calculations.shortestAngularDistance(targetAngle, currentAngle);
+    return Calculations.shortestAngularDistance(currentAngle, targetAngle);
+  }
+
+  /**
+   * Gets the target pose this command is driving to.
+   * 
+   * @return target pose
+   */
+  public Pose getTargetPose() {
+    return new Pose(targetPose);
   }
 }
