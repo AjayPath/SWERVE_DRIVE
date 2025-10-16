@@ -18,6 +18,7 @@ import edu.wpi.first.wpilibj.Timer;
  * - Rate Limit: Maximum change per second (e.g., 2.0 m/s²)
  * - Jerk Limit: How fast the rate limit can increase (e.g., 5.0 m/s³)
  * - Gradually increases acceleration from 0 to maxRateLimit
+ * - Rate limit decays when input changes are small
  * 
  * Example Use Case:
  * - Driver inputs full throttle instantly
@@ -38,10 +39,12 @@ public class SlewRateLimiter {
   // State Tracking
   // ===========================================================================================
 
-  private double prevVal;  // Last output value
-  private double prevTime; // Timestamp of last calculation
-  private double currTime; // Current timestamp
-  private double elapsedTime; // Time since last calculation
+  private double prevVal;    // Last output value
+  private double prevTime;   // Timestamp of last calculation
+  private boolean firstCall; // Track first call to handle initialization
+
+  // Tuning parameter for rate limit decay
+  private static final double RATE_DECAY_FACTOR = 0.5; // How fast unused rate limit decays
 
   // ===========================================================================================
   // Constructor
@@ -58,8 +61,8 @@ public class SlewRateLimiter {
     jerkLimit = _jerkLimit;
     currRateLimit = 0.0;
     prevVal = 0.0;
-    prevTime = 0.0;
-    currTime = 0.0;
+    prevTime = Timer.getFPGATimestamp();
+    firstCall = true;
   }
 
   // ===========================================================================================
@@ -70,9 +73,11 @@ public class SlewRateLimiter {
    * Applies slew rate limiting to an input value.
    * 
    * Algorithm:
-   * 1. If input is increasing too fast: Limit output, gradually increase rate limit
-   * 2. If input is decreasing too fast: Limit output, gradually increase rate limit
-   * 3. If input is within limits: Pass through unchanged, update current rate
+   * 1. Calculate time delta (handle first call gracefully)
+   * 2. Calculate desired change and required rate
+   * 3. Update current rate limit with jerk limiting
+   * 4. Apply rate limit to output
+   * 5. Decay unused rate limit for smoother transitions
    * 
    * The rate limit itself ramps up smoothly (jerk limiting) to prevent sudden changes.
    * 
@@ -80,37 +85,51 @@ public class SlewRateLimiter {
    * @return rate-limited output value
    */
   public double CalculateSlewRate(double _input) {
-    double output = 0.0;
-    currTime = Timer.getFPGATimestamp();
-    elapsedTime = currTime - prevTime;
+    double currTime = Timer.getFPGATimestamp();
+    double elapsedTime = currTime - prevTime;
 
-    // Input is increasing faster than allowed
-    if (_input > (prevVal + currRateLimit * elapsedTime)) {
-      // Limit output to maximum allowed increase
-      output = prevVal + currRateLimit * elapsedTime;
-      
-      // Gradually increase the rate limit (jerk limiting)
-      currRateLimit = Calculations.LimitOutput(
+    // Handle first call or very small time steps
+    if (firstCall || elapsedTime < 1e-6) {
+      prevTime = currTime;
+      prevVal = _input;
+      firstCall = false;
+      return _input;
+    }
+
+    // Calculate desired change
+    double desiredChange = _input - prevVal;
+    double desiredRate = Math.abs(desiredChange) / elapsedTime;
+
+    // Determine if we need to increase rate limit
+    if (desiredRate > currRateLimit) {
+      // Gradually increase rate limit (jerk limiting)
+      currRateLimit = Math.min(
           currRateLimit + jerkLimit * elapsedTime,
           maxRateLimit);
-    }
-    // Input is decreasing faster than allowed
-    else if (_input < (prevVal - currRateLimit * elapsedTime)) {
-      // Limit output to maximum allowed decrease
-      output = prevVal - currRateLimit * elapsedTime;
+    } else {
+      // Decay rate limit when not needed (allows smooth direction changes)
+      // This prevents the rate limit from staying high indefinitely
+      currRateLimit = Math.max(
+          desiredRate,
+          currRateLimit - jerkLimit * RATE_DECAY_FACTOR * elapsedTime);
       
-      // Gradually increase the rate limit (jerk limiting)
-      currRateLimit = Calculations.LimitOutput(
-          currRateLimit + jerkLimit * elapsedTime,
-          maxRateLimit);
+      // Ensure rate limit doesn't go below zero
+      currRateLimit = Math.max(0.0, currRateLimit);
     }
-    // Input is within rate limits
-    else {
-      // Pass through unchanged
+
+    // Apply rate limiting
+    double maxChange = currRateLimit * elapsedTime;
+    double output;
+
+    if (desiredChange > maxChange) {
+      // Input increasing too fast
+      output = prevVal + maxChange;
+    } else if (desiredChange < -maxChange) {
+      // Input decreasing too fast
+      output = prevVal - maxChange;
+    } else {
+      // Input within limits
       output = _input;
-      
-      // Update current rate based on actual change
-      currRateLimit = Math.abs(prevVal - _input) / elapsedTime;
     }
 
     // Update state for next iteration
@@ -118,6 +137,29 @@ public class SlewRateLimiter {
     prevVal = output;
     
     return output;
+  }
+
+  // ===========================================================================================
+  // Getters
+  // ===========================================================================================
+
+  /**
+   * Gets the current rate limit being applied.
+   * Useful for debugging and tuning.
+   * 
+   * @return current rate limit (units/second)
+   */
+  public double getCurrentRateLimit() {
+    return currRateLimit;
+  }
+
+  /**
+   * Gets the last output value.
+   * 
+   * @return last output value
+   */
+  public double getLastValue() {
+    return prevVal;
   }
 
   // ===========================================================================================
@@ -134,5 +176,6 @@ public class SlewRateLimiter {
     prevVal = _input;
     prevTime = Timer.getFPGATimestamp();
     currRateLimit = 0.0;
+    firstCall = true;
   }
 }
