@@ -42,7 +42,8 @@ public class DriveToPoint extends Command {
   // Control Parameters
   // ===========================================================================================
 
-  private final APPID drivePID;  // Controls translation speed based on distance error
+  private final APPID xPID;  // Controls translation speed based on distance error
+  private final APPID yPID;
   private final APPID turnPID;   // Controls rotation speed based on angle error
 
   private final Pose targetPose;          // Desired final position and orientation
@@ -50,13 +51,22 @@ public class DriveToPoint extends Command {
   private final double angleTolerance;    // Acceptable angle error (degrees)
 
   // ===========================================================================================
-  // PID Constants - Translation
+  // PID Constants - X Controller
   // ===========================================================================================
 
-  private static final double kDriveP = 0.6;           // Proportional gain for drive
-  private static final double kDriveI = 0.0;           // Integral gain for drive
-  private static final double kDriveD = 0.05;          // Derivative gain for drive
-  private static final double kMaxDriveSpeed = 0.125;    // Maximum translation speed (0-1)
+  private static final double kXP = 0.6;           // Proportional gain for drive
+  private static final double kXI = 0.0;           // Integral gain for drive
+  private static final double kXD = 0.05;          // Derivative gain for drive
+  private static final double kXMaxDriveSpeed = 0.125;    // Maximum translation speed (0-1)
+
+  // ===========================================================================================
+  // PID Constants - X Controller
+  // ===========================================================================================
+
+  private static final double kYP = 0.6;           // Proportional gain for drive
+  private static final double kYI = 0.0;           // Integral gain for drive
+  private static final double kYD = 0.05;          // Derivative gain for drive
+  private static final double kYMaxDriveSpeed = 0.125;    // Maximum translation speed (0-1)
 
   // ===========================================================================================
   // PID Constants - Rotation
@@ -90,14 +100,16 @@ public class DriveToPoint extends Command {
 
     // Initialize translation PID controller
     // Goal: Drive distance-to-target toward zero
-    this.drivePID = new APPID(kDriveP, kDriveI, kDriveD, positionTolerance);
-    this.drivePID.setMaxOutput(kMaxDriveSpeed);
+    this.xPID = new APPID(kXP, kXI, kXD, positionTolerance);
+    this.xPID.setMaxOutput(kXMaxDriveSpeed);
+
+    this.yPID = new APPID(kYP, kYI, kYD, positionTolerance);
+    this.yPID.setMaxOutput(kYMaxDriveSpeed);
 
     // Initialize rotation PID controller
     // Goal: Drive angle error toward zero
     this.turnPID = new APPID(kTurnP, kTurnI, kTurnD, angleTolerance);
     this.turnPID.setMaxOutput(kMaxRotationSpeed);
-    //this.turnPID.setDesiredValue(0.0); // Always targeting zero angle error
 
     addRequirements(driveSubsystem);
   }
@@ -120,13 +132,13 @@ public class DriveToPoint extends Command {
 
   @Override
   public void initialize() {
-    drivePID.reset();
+    xPID.reset();
+    yPID.reset();
     turnPID.reset();
 
-    System.out.println("DrivePoint: Targeting (" +
-        targetPose.GetXValue() + ", " +
-        targetPose.GetYValue() + ", " +
-        targetPose.GetAngleValue() + "°)");
+    SmartDashboard.putNumber("TARGET_X", targetPose.GetXValue());
+    SmartDashboard.putNumber("TARGET_Y", targetPose.GetYValue());
+    SmartDashboard.putNumber("TARGET_ANGLE", targetPose.GetAngleValue());
   }
 
   @Override
@@ -141,16 +153,21 @@ public class DriveToPoint extends Command {
     // Calculate vector from current position to target
     Vector difference = targetPose.Subtract(currentPose);
     double distanceToTarget = difference.GetMag();
+    double xToTarget = difference.GetXValue();
+    double yToTarget = difference.GetYValue();
 
     // PID drives distance toward zero
-    // Setpoint = current distance, measurement = 0, so error = distance
-    drivePID.setDesiredValue(distanceToTarget);
-    double speed = drivePID.calcPID(0.0);
+    // Setpoint = current distance, measurement = 0, so error = distanc
+    xPID.setDesiredValue(xToTarget);
+    yPID.setDesiredValue(yToTarget);
+
+    double xSpeed = xPID.calcPID(0);
+    double ySpeed = yPID.calcPID(0);
 
     // Convert speed to x/y velocity components using direction to target
     double angleToTargetRad = difference.GetAngle().getRadians();
-    double xVel = speed * Math.cos(angleToTargetRad);
-    double yVel = speed * Math.sin(angleToTargetRad);
+    double xVel = xSpeed * Math.cos(angleToTargetRad);
+    double yVel = ySpeed * Math.sin(angleToTargetRad);
 
     SmartDashboard.putNumber("X ERROR", difference.GetXValue());
     SmartDashboard.putNumber("Y ERROR", difference.GetYValue());
