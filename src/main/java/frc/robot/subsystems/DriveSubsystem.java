@@ -323,6 +323,15 @@ public class DriveSubsystem extends SubsystemBase {
   }
 
   /**
+   * Gets the pigeon isntance.
+   * 
+   * @return pigeon
+   */
+  public Pigeon2 getPigeon() {
+    return m_gyro;
+  }
+
+  /**
    * Resets the gyro to zero heading.
    * Does not reset odometry - only zeros the gyro sensor.
    */
