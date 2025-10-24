@@ -4,8 +4,6 @@
 
 package frc.robot;
 
-import java.io.SequenceInputStream;
-
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -13,7 +11,6 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
-import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 
 import frc.robot.Constants.OIConstants;
@@ -65,20 +62,14 @@ public class RobotContainer {
    * {@link JoystickButton}.
    */
   private void configureButtonBindings() {
-    // A button: Drive to point (2, 0) at 90 degrees, then wait 5 seconds
     new JoystickButton(m_driverController, XboxController.Button.kA.value)
-        .whileTrue(
-                new SequentialCommandGroup(
-                  new DriveToPoint(m_robotDrive, 0.5, 0, 0, 0.2, 2)
-                  // new WaitCommand(2),
-                  // new DriveToPoint(m_robotDrive, 2, 0, 90, 0.2, 2)
-                )
-        );
+      .whileTrue(
+        new SequentialCommandGroup(
+          new DriveToPoint(m_robotDrive, 0.5, 0, 0, 0.2, 2)));
 
-        new JoystickButton(m_driverController, XboxController.Button.kB.value)
-        .whileTrue(
-                new InstantCommand(() -> m_robotDrive.setOdom(0, 0, 0))
-        );
+    new JoystickButton(m_driverController, XboxController.Button.kB.value)
+      .whileTrue(
+          new InstantCommand(() -> m_robotDrive.setOdom(0, 0, 0)));
   }
 
   /**
