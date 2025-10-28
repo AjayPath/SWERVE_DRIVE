@@ -62,7 +62,7 @@ public class DriveToPoint extends Command {
   private static final double kXP = 0.6;              // Proportional gain for X-axis
   private static final double kXI = 0.0;              // Integral gain for X-axis
   private static final double kXD = 0.05;             // Derivative gain for X-axis
-  private static final double kXMaxSpeed = 0.125;     // Maximum X velocity (0-1 normalized)
+  private static final double kXMaxSpeed = 0.25;     // Maximum X velocity (0-1 normalized)
 
   // ===========================================================================================
   // PID Constants - Y Controller
@@ -71,7 +71,7 @@ public class DriveToPoint extends Command {
   private static final double kYP = 0.6;              // Proportional gain for Y-axis
   private static final double kYI = 0.0;              // Integral gain for Y-axis
   private static final double kYD = 0.05;             // Derivative gain for Y-axis
-  private static final double kYMaxSpeed = 0.125;     // Maximum Y velocity (0-1 normalized)
+  private static final double kYMaxSpeed = 0.25;     // Maximum Y velocity (0-1 normalized)
 
   // ===========================================================================================
   // PID Constants - Rotation
@@ -190,8 +190,8 @@ public class DriveToPoint extends Command {
     xPID.setDesiredValue(0);
     yPID.setDesiredValue(0);
 
-    double xSpeed = xPID.calcPID(xError);
-    double ySpeed = yPID.calcPID(yError);
+    double xSpeed = -xPID.calcPID(xError);
+    double ySpeed = -yPID.calcPID(yError);
 
     // Apply slew rate limiting for smooth acceleration
     double xVel = xLimiter.CalculateSlewRate(xSpeed);

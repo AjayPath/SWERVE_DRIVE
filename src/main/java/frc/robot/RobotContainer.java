@@ -5,12 +5,14 @@
 package frc.robot;
 
 import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.wpilibj.Watchdog;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
+import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 
 import frc.robot.Constants.OIConstants;
@@ -65,7 +67,26 @@ public class RobotContainer {
     new JoystickButton(m_driverController, XboxController.Button.kA.value)
       .whileTrue(
         new SequentialCommandGroup(
-          new DriveToPoint(m_robotDrive, 0.5, 0, 0, 0.2, 2)));
+          // new DriveToPoint(m_robotDrive, 1, 1, 60, 0.3, 2),
+          // new WaitCommand(0.5),
+          // new DriveToPoint(m_robotDrive, 2, -1, 120, 0.3, 2),
+          // new WaitCommand(0.5),
+          // new DriveToPoint(m_robotDrive, 3, 0, 180, 0.3, 2),
+          // new WaitCommand(0.5),
+          // new DriveToPoint(m_robotDrive, 2, 1, 240, 0.3, 2),
+          // new WaitCommand(0.5),
+          // new DriveToPoint(m_robotDrive, 1, -1, 300, 0.3, 2),
+          // new WaitCommand(0.5),
+          // new DriveToPoint(m_robotDrive, 0, 0, 360, 0.3, 2)
+          new DriveToPoint(m_robotDrive, 2, 0, 90, 0.3, 2),
+          new WaitCommand(0.5),
+          new DriveToPoint(m_robotDrive, 2, 2, 180, 0.3, 2),
+          new WaitCommand(0.5),
+          new DriveToPoint(m_robotDrive, 0, 2, 270, 0.3, 2),
+          new WaitCommand(0.5),
+          new DriveToPoint(m_robotDrive, 0, 0, 0, 0.3, 2),
+          new WaitCommand(0.5)
+          ));
 
     new JoystickButton(m_driverController, XboxController.Button.kB.value)
       .whileTrue(
