@@ -120,61 +120,6 @@ public class APOdometry {
   // Odometry Update
   // ===========================================================================================
 
-  // /**
-  //  * Updates odometry by integrating wheel movements.
-  //  * 
-  //  * Process:
-  //  * 1. For each wheel: Calculate distance traveled since last update
-  //  * 2. Convert distance to X/Y displacement using wheel angle
-  //  * 3. Update each wheel's position
-  //  * 4. Calculate robot center from average of all wheels
-  //  * 5. Calculate velocity from position change over time
-  //  * 
-  //  * Should be called periodically (every 20ms recommended)
-  //  */
-  // public void update() {
-  //   // Update each module's position based on wheel movement
-  //   for (int i = 0; i < swerveMods.size(); i++) {
-  //     // Get current wheel distance and calculate change
-  //     double currentDistance = swerveMods.get(i).getPosition().distanceMeters;
-  //     double deltaDistance = currentDistance - lastWheelDistances[i];
-  //     lastWheelDistances[i] = currentDistance;
-
-  //     // Get wheel angle and convert distance to X/Y components
-  //     double wheelAngle = swerveMods.get(i).getPosition().angle.getDegrees();
-  //     double wheelAngleRad = Math.toRadians(wheelAngle);
-
-  //     double dx = Math.cos(wheelAngleRad) * deltaDistance;
-  //     double dy = Math.sin(wheelAngleRad) * deltaDistance;
-
-  //     // Update wheel pose
-  //     modulePoses.get(i).SetX(modulePoses.get(i).GetXValue() + dx);
-  //     modulePoses.get(i).SetY(modulePoses.get(i).GetYValue() + dy);
-  //     modulePoses.get(i).SetAngle(wheelAngle);
-  //   }
-
-  //   // Calculate robot center and velocity
-  //   Pose currentCenter = calculateCenter();
-  //   double currentTime = Timer.getFPGATimestamp();
-
-  //   double dt = currentTime - lastTime;
-  //   if (dt > 0) {
-  //     // Calculate displacement since last update
-  //     double dx = currentCenter.GetXValue() - lastCenter.GetXValue();
-  //     double dy = currentCenter.GetYValue() - lastCenter.GetYValue();
-
-  //     // Calculate velocity magnitude and direction
-  //     double mag = Math.sqrt(dx * dx + dy * dy) / dt;
-  //     Rotation2d angle = new Rotation2d(Math.atan2(dy, dx));
-
-  //     lastVelocity = new Vector(mag, angle);
-  //   }
-
-  //   lastCenter = currentCenter;
-  //   lastTime = currentTime;
-  // }
-
-  
 /**
  * Updates odometry by integrating wheel movements in field-relative coordinates.
  * 
