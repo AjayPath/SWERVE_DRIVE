@@ -15,18 +15,20 @@ public class LimelightSubsystem extends SubsystemBase {
   
   /** Creates a new LimelightSubsystem. */
   public LimelightSubsystem() {
-    limelight = NetworkTableInstance.getDefault().getTable("");
+    limelight = NetworkTableInstance.getDefault().getTable("limelight");
   }
 
   @Override
   public void periodic() {
     SmartDashboard.putBoolean("Valid ID", hasValidTarget());
+    double distance = getDistanceFromTag(getTA());
     
     if (hasValidTarget()) {
-      SmartDashboard.putNumber("TAG ID", getTagID());
-      SmartDashboard.putNumber("X Offset", getXOffset());
-      SmartDashboard.putNumber("Y Offset", getYOffset());
-      SmartDashboard.putNumber("Tag Area", getTargetArea());
+      SmartDashboard.putNumber("TAG ID", getTID());
+      SmartDashboard.putNumber("TX", getTX());
+      SmartDashboard.putNumber("TY", getTY());
+      SmartDashboard.putNumber("TA", getTA());
+      SmartDashboard.putNumber("Distance From Tag", distance);
     }
   }
 
@@ -34,20 +36,26 @@ public class LimelightSubsystem extends SubsystemBase {
     return limelight.getEntry("tv").getDouble(0) == 1.0;
   }
 
-  public double getXOffset() {
+  public double getTX() {
     return limelight.getEntry("tx").getDouble(0);
   }
 
-  public double getYOffset() {
+  public double getTY() {
     return limelight.getEntry("ty").getDouble(0);
   }
 
-  public double getTargetArea() {
+  public double getTA() {
     return limelight.getEntry("ta").getDouble(0);
   }
 
-  public int getTagID() {
+  public int getTID() {
     return (int)limelight.getEntry("tid").getDouble(0);
+  }
+
+  public double getDistanceFromTag(double ta) {
+    double scale = 1; // m
+    double distance = (scale / ta);
+    return distance;
   }
 
 }
