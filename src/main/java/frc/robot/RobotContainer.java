@@ -68,14 +68,7 @@ public class RobotContainer {
     new JoystickButton(m_driverController, XboxController.Button.kA.value)
       .whileTrue(
         new SequentialCommandGroup(
-          new DriveToPoint(m_robotDrive, 2, 0, 90, 0.3, 2),
-          new WaitCommand(0.5),
-          new DriveToPoint(m_robotDrive, 2, 2, 180, 0.3, 2),
-          new WaitCommand(0.5),
-          new DriveToPoint(m_robotDrive, 0, 2, 270, 0.3, 2),
-          new WaitCommand(0.5),
-          new DriveToPoint(m_robotDrive, 0, 0, 0, 0.3, 2),
-          new WaitCommand(0.5)
+          new DriveToPoint(m_robotDrive, 0, 2, 90, 0.3, 2)
           ));
 
     new JoystickButton(m_driverController, XboxController.Button.kB.value)

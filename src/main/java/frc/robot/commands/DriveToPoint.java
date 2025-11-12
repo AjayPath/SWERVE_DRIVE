@@ -162,15 +162,6 @@ public class DriveToPoint extends Command {
     yLimiter.ResetSlewRate(0.0);
     rotLimiter.ResetSlewRate(0.0);
 
-    // Log target for debugging
-    SmartDashboard.putNumber("TARGET_X", targetPose.GetXValue());
-    SmartDashboard.putNumber("TARGET_Y", targetPose.GetYValue());
-    SmartDashboard.putNumber("TARGET_ANGLE", targetPose.GetAngleValue());
-
-    System.out.println("DriveToPoint: Starting - Target: (" + 
-                       targetPose.GetXValue() + ", " + 
-                       targetPose.GetYValue() + ", " + 
-                       targetPose.GetAngleValue() + "°)");
   }
 
   @Override
@@ -222,17 +213,17 @@ public class DriveToPoint extends Command {
     // Logging
     // ===========================================================================================
 
-    SmartDashboard.putNumber("X_ERROR", xError);
-    SmartDashboard.putNumber("Y_ERROR", yError);
-    SmartDashboard.putNumber("DISTANCE_TO_TARGET", distanceToTarget);
-    SmartDashboard.putNumber("ANGLE_ERROR", angleError);
+    // SmartDashboard.putNumber("X_ERROR", xError);
+    // SmartDashboard.putNumber("Y_ERROR", yError);
+    // SmartDashboard.putNumber("DISTANCE_TO_TARGET", distanceToTarget);
+    // SmartDashboard.putNumber("ANGLE_ERROR", angleError);
     
-    SmartDashboard.putNumber("X_VEL_RAW", xSpeed);
-    SmartDashboard.putNumber("X_VEL_LIMITED", xVel);
-    SmartDashboard.putNumber("Y_VEL_RAW", ySpeed);
-    SmartDashboard.putNumber("Y_VEL_LIMITED", yVel);
-    SmartDashboard.putNumber("ROT_VEL_RAW", rotationSpeed);
-    SmartDashboard.putNumber("ROT_VEL_LIMITED", rotationOutput);
+    // SmartDashboard.putNumber("X_VEL_RAW", xSpeed);
+    // SmartDashboard.putNumber("X_VEL_LIMITED", xVel);
+    // SmartDashboard.putNumber("Y_VEL_RAW", ySpeed);
+    // SmartDashboard.putNumber("Y_VEL_LIMITED", yVel);
+    // SmartDashboard.putNumber("ROT_VEL_RAW", rotationSpeed);
+    // SmartDashboard.putNumber("ROT_VEL_LIMITED", rotationOutput);
 
     // ===========================================================================================
     // Drive Robot

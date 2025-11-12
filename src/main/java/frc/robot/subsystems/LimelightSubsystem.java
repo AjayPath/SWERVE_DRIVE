@@ -53,7 +53,7 @@ public class LimelightSubsystem extends SubsystemBase {
   }
 
   public double getDistanceFromTag(double ta) {
-    double scale = 1; // m
+    double scale = 2.297; // m
     double distance = (scale / ta);
     return distance;
   }
