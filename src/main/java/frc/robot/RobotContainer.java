@@ -15,6 +15,7 @@ import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 
 import frc.robot.Constants.OIConstants;
+import frc.robot.commands.AutoAlign;
 import frc.robot.commands.DriveToPoint;
 import frc.robot.subsystems.DriveSubsystem;
 import frc.robot.subsystems.LimelightSubsystem;
@@ -30,7 +31,7 @@ public class RobotContainer {
   
   // Subsystems
   private final DriveSubsystem m_robotDrive = new DriveSubsystem();
-  private final LimelightSubsystem m_limelight = new LimelightSubsystem();
+  private final LimelightSubsystem m_limelight = new LimelightSubsystem(m_robotDrive);
 
   // Controllers
   private final XboxController m_driverController = new XboxController(OIConstants.kDriverControllerPort);
@@ -67,13 +68,19 @@ public class RobotContainer {
   private void configureButtonBindings() {
     new JoystickButton(m_driverController, XboxController.Button.kA.value)
       .whileTrue(
-        new SequentialCommandGroup(
-          new DriveToPoint(m_robotDrive, 0, 2, 90, 0.3, 2)
-          ));
+        new AutoAlign(m_robotDrive, m_limelight, 0.5));
 
     new JoystickButton(m_driverController, XboxController.Button.kB.value)
       .whileTrue(
-          new InstantCommand(() -> m_robotDrive.setOdom(0, 0, 0)));
+          new DriveToPoint(m_robotDrive, 2.1, -1.7, 0));
+
+    new JoystickButton(m_driverController, XboxController.Button.kY.value)
+      .whileTrue(
+        new SequentialCommandGroup(
+          new DriveToPoint(m_robotDrive, 2.1, -1.7, 0),
+          new AutoAlign(m_robotDrive, m_limelight, 0.5)
+        )
+      );
   }
 
   /**

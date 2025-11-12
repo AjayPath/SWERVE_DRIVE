@@ -4,17 +4,28 @@
 
 package frc.robot.subsystems;
 
+import static edu.wpi.first.units.Units.Rotation;
+
+import java.util.Vector;
+
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.Constants.fieldConstants;
+import frc.robot.utils.Pose;
 
 public class LimelightSubsystem extends SubsystemBase {
   
   private final NetworkTable limelight;
+  private final DriveSubsystem m_drive;
+
+
   
   /** Creates a new LimelightSubsystem. */
-  public LimelightSubsystem() {
+  public LimelightSubsystem(DriveSubsystem m_drive) {
+    this.m_drive = m_drive;
     limelight = NetworkTableInstance.getDefault().getTable("limelight");
   }
 
@@ -29,7 +40,11 @@ public class LimelightSubsystem extends SubsystemBase {
       SmartDashboard.putNumber("TY", getTY());
       SmartDashboard.putNumber("TA", getTA());
       SmartDashboard.putNumber("Distance From Tag", distance);
+      SmartDashboard.putNumber("Gyro Heading", m_drive.getHeading());
+      calculateRobotFieldPose(distance);
     }
+
+    
   }
 
   public boolean hasValidTarget() {
@@ -54,8 +69,53 @@ public class LimelightSubsystem extends SubsystemBase {
 
   public double getDistanceFromTag(double ta) {
     double scale = 2.297; // m
-    double distance = (scale / ta);
+    double distance = Math.sqrt(scale / ta);
     return distance;
+  }
+
+  public Pose calculateRobotFieldPose (double gyroHeading) {
+
+    if (!hasValidTarget()) {
+      return null;
+    }
+
+    int tid = getTID();
+
+    Pose tagPose = fieldConstants.getTagPose(tid);
+
+    if (tagPose == null) {
+      return null;
+    }
+
+    SmartDashboard.putNumber("Tag Pose X", tagPose.GetXValue());
+    SmartDashboard.putNumber("Tag Pose Y", tagPose.GetYValue());
+    SmartDashboard.putNumber("Tag Pose Angle", tagPose.GetAngleValue());
+
+    double distance = getDistanceFromTag(getTA());
+    double tagHeading = tagPose.GetAngleValue();
+    double tx = getTX();
+    double fieldAngleDegrees = gyroHeading + tx;
+    double fieldAngleRadians = Math.toRadians(fieldAngleDegrees);
+
+    double displacementX = distance * Math.cos(fieldAngleRadians);
+    double displacementY = distance * Math.sin(fieldAngleRadians);
+
+    SmartDashboard.putNumber("Displacement X", displacementX);
+    SmartDashboard.putNumber("Displacement Y", displacementY);
+
+    double robotX = tagPose.GetXValue() - displacementX;
+    double robotY = tagPose.GetYValue() - displacementY;
+
+
+
+    Pose robotPose = new Pose(robotX, robotY, tagHeading);
+
+    SmartDashboard.putNumber("Robot Pose X", robotPose.GetXValue());
+    SmartDashboard.putNumber("Robot Pose Y", robotPose.GetYValue());
+    SmartDashboard.putNumber("Robot Pose Angle", robotPose.GetAngleValue());
+
+    return robotPose;
+
   }
 
 }

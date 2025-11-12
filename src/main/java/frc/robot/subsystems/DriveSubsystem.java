@@ -113,7 +113,6 @@ public class DriveSubsystem extends SubsystemBase {
   public void periodic() {
     // Update custom odometry every cycle (20ms)
     APOdom.update();
-    SmartDashboard.putNumber("Gryooo", getHeading());
   }
 
   // ===========================================================================================
